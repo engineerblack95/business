@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #2C3E50 0%, #1A252F 100%); color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; background: #f9f9f9; }
+        .otp-code { font-size: 32px; font-weight: bold; color: #E67E22; text-align: center; padding: 20px; letter-spacing: 5px; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #777; }
+        .button { display: inline-block; padding: 10px 20px; background: #E67E22; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>HerosTechnology</h1>
+            <p>Verify Your Email Address</p>
+        </div>
+        <div class="content">
+            <p>Hello {{ user.full_name|default:user.email }},</p>
+            <p>Thank you for registering with HerosTechnology! Please use the verification code below to complete your registration:</p>
+            <div class="otp-code">{{ otp_code }}</div>
+            <p>This code will expire in {{ expiry_minutes }} minutes.</p>
+            <p>If you didn't request this, please ignore this email.</p>
+            <hr>
+            <p style="text-align: center;">
+                <a href="{{ site_url }}" class="button">Visit Our Website</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2024 HerosTechnology. All rights reserved.</p>
+            <p>Your trusted electronics marketplace</p>
+        </div>
+    </div>
+</body>
+</html>

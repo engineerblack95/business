@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Application Status - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-primary text-white rounded-top-4">
+                    <h3 class="mb-0"><i class="fas fa-file-alt"></i> Supplier Application Status</h3>
+                </div>
+                <div class="card-body p-5 text-center">
+                    
+                    {% if application.status == 'pending' %}
+                        <!-- Pending Status -->
+                        <i class="fas fa-clock fa-4x text-warning mb-3"></i>
+                        <h3 class="text-warning">Application Under Review</h3>
+                        <p class="text-muted">Your supplier application has been submitted and is pending review by our team.</p>
+                        <div class="alert alert-info mt-3">
+                            <strong>Application #:</strong> {{ application.application_number }}<br>
+                            <strong>Submitted:</strong> {{ application.created_at|date:"F j, Y H:i" }}<br>
+                            <strong>Status:</strong> <span class="badge bg-warning">Pending Review</span>
+                        </div>
+                        <p>We will notify you via email once your application has been reviewed.</p>
+                        <div class="mt-4">
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-warning" style="width: 25%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <small>Submitted</small>
+                                <small>Under Review</small>
+                                <small>Approval</small>
+                                <small>Active</small>
+                            </div>
+                        </div>
+                        
+                    {% elif application.status == 'reviewing' %}
+                        <!-- Reviewing Status -->
+                        <i class="fas fa-search fa-4x text-info mb-3"></i>
+                        <h3 class="text-info">Application Being Reviewed</h3>
+                        <p class="text-muted">Our team is currently reviewing your application and documents.</p>
+                        <div class="alert alert-info mt-3">
+                            <strong>Application #:</strong> {{ application.application_number }}<br>
+                            <strong>Submitted:</strong> {{ application.created_at|date:"F j, Y H:i" }}<br>
+                            <strong>Status:</strong> <span class="badge bg-info">Under Review</span>
+                        </div>
+                        <p>We will notify you within 2-3 business days.</p>
+                        <div class="mt-4">
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-info" style="width: 50%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <small>Submitted</small>
+                                <small>Under Review</small>
+                                <small>Approval</small>
+                                <small>Active</small>
+                            </div>
+                        </div>
+                        
+                    {% elif application.status == 'approved' %}
+                        <!-- Approved Status -->
+                        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                        <h3 class="text-success">Application Approved! 🎉</h3>
+                        <p class="text-muted">Congratulations! Your supplier application has been approved.</p>
+                        <div class="alert alert-success mt-3">
+                            <strong>Application #:</strong> {{ application.application_number }}<br>
+                            <strong>Approved:</strong> {{ application.approved_at|date:"F j, Y H:i" }}<br>
+                            <strong>Status:</strong> <span class="badge bg-success">Approved</span>
+                        </div>
+                        <p>You can now start adding products to the platform.</p>
+                        <div class="mt-4">
+                            <a href="{% url 'products:supplier_create' %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-plus"></i> Add Your First Product
+                            </a>
+                        </div>
+                        <div class="mt-4">
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <small>Submitted</small>
+                                <small>Under Review</small>
+                                <small>Approved ✓</small>
+                                <small>Active</small>
+                            </div>
+                        </div>
+                        
+                    {% elif application.status == 'rejected' %}
+                        <!-- Rejected Status -->
+                        <i class="fas fa-times-circle fa-4x text-danger mb-3"></i>
+                        <h3 class="text-danger">Application Not Approved</h3>
+                        <p class="text-muted">We appreciate your interest, but your application was not approved at this time.</p>
+                        <div class="alert alert-danger mt-3">
+                            <strong>Application #:</strong> {{ application.application_number }}<br>
+                            <strong>Submitted:</strong> {{ application.created_at|date:"F j, Y H:i" }}<br>
+                            <strong>Status:</strong> <span class="badge bg-danger">Rejected</span>
+                            {% if application.rejection_reason %}
+                            <hr>
+                            <strong>Reason:</strong> {{ application.rejection_reason }}
+                            {% endif %}
+                        </div>
+                        <p>You can re-apply after 30 days or contact support for more information.</p>
+                        <div class="mt-4">
+                            <a href="{% url 'suppliers:apply' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-redo"></i> Re-apply
+                            </a>
+                        </div>
+                        
+                    {% elif application.status == 'additional_info' %}
+                        <!-- Additional Info Required -->
+                        <i class="fas fa-info-circle fa-4x text-warning mb-3"></i>
+                        <h3 class="text-warning">Additional Information Required</h3>
+                        <p class="text-muted">Please provide the following information to complete your application.</p>
+                        <div class="alert alert-warning mt-3">
+                            <strong>Application #:</strong> {{ application.application_number }}<br>
+                            <strong>Request:</strong> {{ application.additional_info_request }}
+                        </div>
+                        <div class="mt-4">
+                            <a href="{% url 'suppliers:apply' %}" class="btn btn-warning btn-lg">
+                                <i class="fas fa-edit"></i> Update Application
+                            </a>
+                        </div>
+                        
+                    {% else %}
+                        <!-- Default/Unknown Status -->
+                        <i class="fas fa-question-circle fa-4x text-secondary mb-3"></i>
+                        <h3>Application Status Unknown</h3>
+                        <p class="text-muted">Please contact support for more information about your application.</p>
+                        <div class="alert alert-secondary mt-3">
+                            <strong>Application #:</strong> {{ application.application_number }}<br>
+                            <strong>Submitted:</strong> {{ application.created_at|date:"F j, Y H:i" }}<br>
+                            <strong>Status:</strong> <span class="badge bg-secondary">{{ application.get_status_display }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    <hr class="my-4">
+                    
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                        <a href="{% url 'home' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-home"></i> Go to Homepage
+                        </a>
+                    </div>
+                    
+                    {% if application.status == 'pending' or application.status == 'reviewing' %}
+                    <div class="alert alert-light mt-4">
+                        <i class="fas fa-envelope"></i> 
+                        <strong>Need help?</strong> Contact us at <a href="mailto:support@herostechnology.com">support@herostechnology.com</a>
+                    </div>
+                    {% endif %}
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 10px;
+    }
+    .progress-bar {
+        border-radius: 10px;
+        transition: width 0.5s ease;
+    }
+    .card {
+        transition: transform 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}

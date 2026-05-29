@@ -1,0 +1,217 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Supplier Dashboard - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-line"></i> Supplier Dashboard</h2>
+    <div>
+        <span class="text-muted">Welcome back, {{ request.user.full_name|default:request.user.email }}</span>
+    </div>
+</div>
+
+<!-- Check if supplier is approved -->
+{% if not user.is_approved_supplier %}
+<div class="alert alert-warning">
+    <i class="fas fa-clock"></i> 
+    <strong>Your supplier application is pending approval.</strong> You will be notified once approved.
+</div>
+{% else %}
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Total Products</small>
+                    <h3 class="mb-0">{{ analytics.products.total }}</h3>
+                    <small class="text-success">{{ analytics.products.approved }} approved</small>
+                </div>
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-box"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Total Sales</small>
+                    <h3 class="mb-0">{{ analytics.sales.total|floatformat:0 }} FRW</h3>
+                    <small>{{ analytics.sales.units_sold }} units sold</small>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Pending Payouts</small>
+                    <h3 class="mb-0">{{ analytics.payouts.pending|floatformat:0 }} FRW</h3>
+                    <small class="text-warning">Awaiting processing</small>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Average Rating</small>
+                    <h3 class="mb-0">{{ analytics.avg_rating|floatformat:1 }} ⭐</h3>
+                    <small>Customer satisfaction</small>
+                </div>
+                <div class="stats-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-star"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Orders -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-shopping-cart"></i> Recent Orders</h5>
+                <a href="{% url 'orders:supplier_orders' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'orders:order_detail' order.id %}">{{ order.order_number|truncatechars:12 }}</a>
+                                </a>
+                                <td>{{ order.customer.email|truncatechars:15 }}</a>
+                                <td>{{ order.grand_total|floatformat:0 }} FRW</a>
+                                <td>
+                                    <span class="badge {% if order.order_status == 'delivered' %}bg-success{% elif order.order_status == 'pending' %}bg-warning{% elif order.order_status == 'processing' %}bg-info{% elif order.order_status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        {{ order.get_order_status_display }}
+                                    </span>
+                                </a>
+                            </a>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No orders yet</a>
+                            </a>
+                            {% endfor %}
+                        </tbody>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Products -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-box"></i> Recent Products</h5>
+                <a href="{% url 'products:supplier_products' %}" class="btn btn-sm btn-primary">Manage</a>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for product in recent_products %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ product.name|truncatechars:30 }}</strong>
+                                <br>
+                                <small class="text-muted">{{ product.final_price|floatformat:0 }} FRW</small>
+                                <br>
+                                <small class="text-muted">Stock: {{ product.exact_quantity }} units</small>
+                            </div>
+                            <div>
+                                {% if product.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                                {% elif product.status == 'pending_approval' %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% elif product.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ product.status }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <a href="{% url 'products:supplier_update' product.id %}" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'products:supplier_stock_update' product.id %}" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-boxes"></i> Update Stock
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-3">
+                        <p class="mb-0">No products yet</p>
+                        <a href="{% url 'products:supplier_create' %}" class="btn btn-sm btn-primary mt-2">Add Product</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Low Stock Alert -->
+{% if analytics.products.low_stock > 0 %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Low Stock Alert!</strong> You have {{ analytics.products.low_stock }} products with low inventory.
+            <a href="{% url 'products:supplier_products' %}" class="alert-link">Review now</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{% url 'products:supplier_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New Product
+                    </a>
+                    <a href="{% url 'products:supplier_products' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-edit"></i> Manage Products
+                    </a>
+                    <a href="{% url 'suppliers:profile' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-store"></i> Store Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}

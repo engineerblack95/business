@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Order Confirmation - HerosTechnology</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #2C3E50 0%, #1A252F 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .header p {
+            margin: 5px 0 0;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .order-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .order-info table {
+            width: 100%;
+        }
+        .order-info td {
+            padding: 5px 0;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .items-table th {
+            background: #e9ecef;
+            padding: 10px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .items-table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .total-row {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        .total-row td {
+            padding: 10px;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #dee2e6;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #E67E22;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .button:hover {
+            background: #D35400;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-success {
+            color: #28a745;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #28a745;
+            color: white;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>HerosTechnology</h1>
+            <p>Your Trusted Electronics Marketplace</p>
+        </div>
+        
+        <div class="content">
+            <h2>Order Confirmation 🎉</h2>
+            <p>Dear <strong>{{ order.customer.full_name|default:order.customer.email }}</strong>,</p>
+            <p>Thank you for your purchase! Your order has been successfully placed and is being processed.</p>
+            
+            <div class="order-info">
+                <table>
+                    <tr>
+                        <td><strong>Order Number:</strong></td>
+                        <td>{{ order.order_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Order Date:</strong></td>
+                        <td>{{ order.created_at|date:"F j, Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payment Status:</strong></td>
+                        <td><span class="badge">{{ order.get_payment_status_display }}</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payment Method:</strong></td>
+                        <td>{{ order.get_payment_method_display }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h3>Order Items</h3>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items.all %}
+                    <tr>
+                        <td>{{ item.product.name }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.final_price|floatformat:0 }} FRW</td>
+                        <td>{{ item.get_total_final_price|floatformat:0 }} FRW</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-right"><strong>Subtotal (excl. VAT):</strong></td>
+                        <td><strong>{{ order.subtotal_base|floatformat:0 }} FRW</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" class="text-right"><strong>VAT (18%):</strong></td>
+                        <td><strong>{{ order.total_vat|floatformat:0 }} FRW</strong></td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="3" class="text-right"><strong>Grand Total:</strong></td>
+                        <td><strong style="color: #E67E22;">{{ order.grand_total|floatformat:0 }} FRW</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <h3>Shipping Information</h3>
+            <div class="order-info">
+                <table>
+                    <tr>
+                        <td><strong>Address:</strong></td>
+                        <td>{{ order.shipping_address }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Phone:</strong></td>
+                        <td>{{ order.shipping_phone }}</td>
+                    </tr>
+                    {% if order.shipping_notes %}
+                    <tr>
+                        <td><strong>Notes:</strong></td>
+                        <td>{{ order.shipping_notes }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+            
+            <div class="text-center">
+                <a href="{{ site_url }}{% url 'orders:order_detail' order.id %}" class="button">
+                    View Order Details
+                </a>
+            </div>
+            
+            <p style="margin-top: 30px;">
+                <strong>What's Next?</strong><br>
+                1. Our team will process your order within 24 hours<br>
+                2. You will receive a shipping confirmation once dispatched<br>
+                3. Delivery typically takes 2-3 business days
+            </p>
+            
+            <p>If you have any questions, please contact our support team at <a href="mailto:support@herostechnology.com">support@herostechnology.com</a></p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2024 HerosTechnology. All rights reserved.</p>
+            <p>Kigali, Rwanda | +250 788 123 456 | info@herostechnology.com</p>
+            <p>
+                <a href="{{ site_url }}">Visit our website</a> | 
+                <a href="#">Privacy Policy</a> | 
+                <a href="#">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,181 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Pending Products - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-clock"></i> Pending Products Approval</h2>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Pending Approval</small>
+                    <h3 class="mb-0">{{ total_pending }}</h3>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Draft Products</small>
+                    <h3 class="mb-0">{{ total_draft }}</h3>
+                </div>
+                <div class="stats-icon bg-secondary bg-opacity-10 text-secondary">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Total Products</small>
+                    <h3 class="mb-0">{{ total_pending|add:total_draft }}</h3>
+                </div>
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-box"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Products -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-hourglass-half"></i> Products Waiting for Approval</h5>
+    </div>
+    <div class="card-body">
+        {% if products %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Supplier</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Submitted</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if product.main_image %}
+                                <img src="{{ product.main_image.url }}" alt="{{ product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" class="me-2">
+                                {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-box text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ product.name|truncatechars:30 }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ product.brand|default:"No brand" }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {{ product.owner.business_name|default:product.owner.email|truncatechars:20 }}
+                            <br>
+                            <small class="text-muted">{{ product.owner.email|truncatechars:20 }}</small>
+                        </td>
+                        <td>{{ product.category.name }}</td>
+                        <td>
+                            <strong>{{ product.final_price|floatformat:0 }} FRW</strong>
+                            <br>
+                            <small class="text-muted">incl. VAT</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if product.exact_quantity > 0 %}success{% else %}danger{% endif %}">
+                                {{ product.exact_quantity }} units
+                            </span>
+                        </td>
+                        <td>{{ product.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <a href="{% url 'products:admin_approve' product.id %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-check-double"></i> Review
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+            <h5>No Pending Products</h5>
+            <p class="text-muted">All products have been reviewed. Check back later for new submissions.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Draft Products (Optional) -->
+{% if draft_products %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-file-alt"></i> Draft Products</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Supplier</th>
+                        <th>Category</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in draft_products %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if product.main_image %}
+                                <img src="{{ product.main_image.url }}" alt="{{ product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" class="me-2">
+                                {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-box text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ product.name|truncatechars:30 }}</strong>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ product.owner.email|truncatechars:20 }}</td>
+                        <td>{{ product.category.name }}</td>
+                        <td>{{ product.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <a href="{% url 'products:admin_approve' product.id %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-edit"></i> Review Draft
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

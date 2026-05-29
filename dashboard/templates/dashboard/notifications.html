@@ -1,0 +1,245 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Notifications - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-bell"></i> Notifications</h2>
+    <div>
+        <a href="{% url 'dashboard:mark_all_read' %}" class="btn btn-outline-primary">
+            <i class="fas fa-check-double"></i> Mark All as Read
+        </a>
+        <a href="{% url 'notifications:preferences' %}" class="btn btn-outline-secondary ms-2">
+            <i class="fas fa-cog"></i> Preferences
+        </a>
+    </div>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row">
+            <div class="col-md-3">
+                <label class="form-label">Notification Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="order" {% if current_type == 'order' %}selected{% endif %}>Order Updates</option>
+                    <option value="payment" {% if current_type == 'payment' %}selected{% endif %}>Payment Updates</option>
+                    <option value="product" {% if current_type == 'product' %}selected{% endif %}>Product Updates</option>
+                    <option value="supplier" {% if current_type == 'supplier' %}selected{% endif %}>Supplier Updates</option>
+                    <option value="commission" {% if current_type == 'commission' %}selected{% endif %}>Commission Updates</option>
+                    <option value="system" {% if current_type == 'system' %}selected{% endif %}>System Notifications</option>
+                    <option value="alert" {% if current_type == 'alert' %}selected{% endif %}>Alerts</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="is_read" class="form-select">
+                    <option value="">All</option>
+                    <option value="unread" {% if current_read_filter == 'unread' %}selected{% endif %}>Unread</option>
+                    <option value="read" {% if current_read_filter == 'read' %}selected{% endif %}>Read</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Date From</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Date To</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Notifications List -->
+<div class="card">
+    <div class="card-body">
+        {% if notifications %}
+            {% for notification in notifications %}
+            <div class="notification-item {% if not notification.is_read %}unread{% endif %} mb-3 p-3 {% if not notification.is_read %}bg-light{% endif %} rounded" 
+                 data-notification-id="{{ notification.id }}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex">
+                        <div class="notification-icon me-3">
+                            {% if notification.notification_type == 'order' %}
+                            <i class="fas fa-shopping-cart fa-2x text-primary"></i>
+                            {% elif notification.notification_type == 'payment' %}
+                            <i class="fas fa-credit-card fa-2x text-success"></i>
+                            {% elif notification.notification_type == 'product' %}
+                            <i class="fas fa-box fa-2x text-info"></i>
+                            {% elif notification.notification_type == 'supplier' %}
+                            <i class="fas fa-store fa-2x text-warning"></i>
+                            {% elif notification.notification_type == 'commission' %}
+                            <i class="fas fa-coins fa-2x text-success"></i>
+                            {% elif notification.notification_type == 'alert' %}
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                            {% else %}
+                            <i class="fas fa-bell fa-2x text-secondary"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <strong>{{ notification.title }}</strong>
+                                {% if notification.priority == 'high' %}
+                                <span class="badge bg-danger">High Priority</span>
+                                {% elif notification.priority == 'urgent' %}
+                                <span class="badge bg-dark">Urgent</span>
+                                {% elif notification.priority == 'medium' %}
+                                <span class="badge bg-warning">Medium</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Low</span>
+                                {% endif %}
+                                {% if not notification.is_read %}
+                                <span class="badge bg-primary">New</span>
+                                {% endif %}
+                            </div>
+                            <p class="mb-1">{{ notification.message|linebreaksbr }}</p>
+                            <small class="text-muted">
+                                <i class="far fa-clock"></i> {{ notification.created_at|date:"F j, Y H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        {% if not notification.is_read %}
+                        <button class="btn btn-sm btn-outline-primary mark-read-btn" data-id="{{ notification.id }}">
+                            <i class="fas fa-check"></i> Mark Read
+                        </button>
+                        {% endif %}
+                        {% if notification.link %}
+                        <a href="{{ notification.link }}" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-arrow-right"></i> View
+                        </a>
+                        {% endif %}
+                        <button class="btn btn-sm btn-outline-danger delete-notification" data-id="{{ notification.id }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% if not forloop.last %}<hr>{% endif %}
+            {% endfor %}
+            
+            <!-- Pagination -->
+            {% if notifications.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if notifications.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ notifications.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in notifications.paginator.page_range %}
+                        {% if notifications.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > notifications.number|add:'-3' and num < notifications.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if notifications.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ notifications.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                <h5>No Notifications</h5>
+                <p class="text-muted">You don't have any notifications yet.</p>
+                <p class="text-muted small">Notifications will appear here when you receive updates about orders, products, and supplier activities.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Mark notification as read
+document.querySelectorAll('.mark-read-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const notificationId = this.dataset.id;
+        const btnElement = this;
+        btnElement.disabled = true;
+        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        fetch(`/dashboard/notifications/mark-read/${notificationId}/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                btnElement.disabled = false;
+                btnElement.innerHTML = '<i class="fas fa-check"></i> Mark Read';
+            }
+        })
+        .catch(() => {
+            btnElement.disabled = false;
+            btnElement.innerHTML = '<i class="fas fa-check"></i> Mark Read';
+        });
+    });
+});
+
+// Delete notification
+document.querySelectorAll('.delete-notification').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete this notification?')) {
+            const notificationId = this.dataset.id;
+            const btnElement = this;
+            btnElement.disabled = true;
+            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            fetch(`/dashboard/notifications/delete/${notificationId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(() => {
+                location.reload();
+            })
+            .catch(() => {
+                btnElement.disabled = false;
+                btnElement.innerHTML = '<i class="fas fa-trash"></i>';
+            });
+        }
+    });
+});
+</script>
+
+<style>
+.notification-item {
+    transition: background-color 0.3s ease;
+}
+.notification-item.unread {
+    border-left: 4px solid #E67E22;
+    background-color: #FFF8F0;
+}
+.notification-item:hover {
+    background-color: #f8f9fa;
+}
+.notification-icon i {
+    width: 32px;
+    text-align: center;
+}
+.btn-group .btn {
+    font-size: 12px;
+    padding: 4px 8px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}My Dashboard - HerosTechnology{% endblock %}
+
+{% block dashboard_url %}{% url 'dashboard:customer' %}{% endblock %}
+
+{% block sidebar_links %}
+<li class="nav-item">
+    <a class="nav-link active" href="{% url 'dashboard:customer' %}">
+        <i class="fas fa-tachometer-alt"></i> Overview
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'orders:order_list' %}">
+        <i class="fas fa-shopping-cart"></i> My Orders
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'products:wishlist' %}">
+        <i class="fas fa-heart"></i> Wishlist
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'accounts:profile' %}">
+        <i class="fas fa-user"></i> Profile Settings
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'accounts:login_history' %}">
+        <i class="fas fa-history"></i> Login History
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'suppliers:apply' %}">
+        <i class="fas fa-store"></i> Become a Supplier
+    </a>
+</li>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-user-circle"></i> My Dashboard</h2>
+    <div>
+        <span class="text-muted">Welcome back, {{ request.user.full_name|default:request.user.email }}</span>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Total Orders</small>
+                    <h3 class="mb-0">{{ analytics.orders.total }}</h3>
+                </div>
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Total Spent</small>
+                    <h3 class="mb-0">{{ analytics.orders.total_spent|floatformat:0 }} FRW</h3>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Wishlist Items</small>
+                    <h3 class="mb-0">{{ analytics.wishlist_count }}</h3>
+                </div>
+                <div class="stats-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="fas fa-heart"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Reviews Written</small>
+                    <h3 class="mb-0">{{ analytics.review_count }}</h3>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-star"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Orders -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Recent Orders</h5>
+                <a href="{% url 'orders:order_list' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>{{ order.order_number|truncatechars:12 }}</td>
+                                <td>{{ order.created_at|date:"Y-m-d" }}</td>
+                                <td>{{ order.grand_total|floatformat:0 }} FRW</td>
+                                <td>
+                                    <span class="badge bg-{% if order.order_status == 'delivered' %}success{% elif order.order_status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                        {{ order.get_order_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-info">View</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No orders yet</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Wishlist Items -->
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-heart"></i> Wishlist</h5>
+                <a href="{% url 'products:wishlist' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% for item in wishlist_items %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center">
+                        {% if item.product.main_image %}
+                        <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" class="me-2">
+                        {% else %}
+                        <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 50px; height: 50px;">
+                            <i class="fas fa-box text-muted"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <strong>{{ item.product.name|truncatechars:25 }}</strong>
+                            <br>
+                            <small class="text-muted">{{ item.product.final_price|floatformat:0 }} FRW</small>
+                        </div>
+                    </div>
+                    <a href="{% url 'products:detail' item.product.slug %}" class="btn btn-sm btn-outline-primary">Buy</a>
+                </div>
+                {% empty %}
+                <div class="text-center py-3">
+                    <p class="mb-0">Your wishlist is empty</p>
+                    <a href="{% url 'products:list' %}" class="btn btn-sm btn-primary mt-2">Start Shopping</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

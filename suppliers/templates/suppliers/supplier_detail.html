@@ -1,0 +1,131 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Supplier Details - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-store"></i> Supplier Details</h2>
+    <a href="{% url 'dashboard:manage_suppliers' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Suppliers
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                {% if profile and profile.logo %}
+                <img src="{{ profile.logo.url }}" alt="{{ supplier.business_name }}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%;" class="mb-3">
+                {% else %}
+                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 120px; height: 120px;">
+                    <i class="fas fa-store fa-3x text-white"></i>
+                </div>
+                {% endif %}
+                <h4>{{ supplier.business_name|default:supplier.email }}</h4>
+                <p class="text-muted">{{ supplier.email }}</p>
+                <p class="text-muted">{{ supplier.phone }}</p>
+                <div class="mt-2">
+                    {% if supplier.is_approved_supplier %}
+                    <span class="badge bg-success">Approved Supplier</span>
+                    {% else %}
+                    <span class="badge bg-warning">Pending Approval</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Business Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Business Name:</strong>
+                        <p>{{ supplier.business_name|default:"-" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tax ID:</strong>
+                        <p>{{ supplier.tax_id|default:"-" }}</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Address:</strong>
+                        <p>{{ profile.business_address|default:"-" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>City/Country:</strong>
+                        <p>{{ profile.business_city|default:"-" }}, {{ profile.business_country|default:"Rwanda" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <h3>{{ total_products }}</h3>
+                        <p class="text-muted">Total Products</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <h3>{{ total_sales }}</h3>
+                        <p class="text-muted">Units Sold</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <h3>{{ total_revenue|floatformat:0 }} FRW</h3>
+                        <p class="text-muted">Total Revenue</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Products</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in recent_products %}
+                            <tr>
+                                <td>{{ product.name|truncatechars:30 }}</td>
+                                <td>{{ product.final_price|floatformat:0 }} FRW</td>
+                                <td>{{ product.exact_quantity }}</td>
+                                <td>
+                                    {% if product.status == 'approved' %}
+                                    <span class="badge bg-success">Approved</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No products yet</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

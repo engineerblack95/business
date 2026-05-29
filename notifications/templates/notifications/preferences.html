@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notification Preferences - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-bell"></i> Notification Preferences</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <h5 class="mb-3">Channel Preferences</h5>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="email_enabled" class="form-check-input" id="email_enabled" {% if prefs.email_enabled %}checked{% endif %}>
+                                <label class="form-check-label" for="email_enabled">
+                                    <i class="fas fa-envelope"></i> Email Notifications
+                                </label>
+                                <br>
+                                <small class="text-muted">Receive notifications via email</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="push_enabled" class="form-check-input" id="push_enabled" {% if prefs.push_enabled %}checked{% endif %}>
+                                <label class="form-check-label" for="push_enabled">
+                                    <i class="fas fa-bell"></i> Push Notifications
+                                </label>
+                                <br>
+                                <small class="text-muted">Receive notifications in your dashboard</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="sms_enabled" class="form-check-input" id="sms_enabled" {% if prefs.sms_enabled %}checked{% endif %}>
+                                <label class="form-check-label" for="sms_enabled">
+                                    <i class="fas fa-mobile-alt"></i> SMS Notifications
+                                </label>
+                                <br>
+                                <small class="text-muted">Coming soon</small>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <h5 class="mb-3">Notification Types</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="order_notifications" class="form-check-input" id="order_notifications" {% if prefs.order_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="order_notifications">
+                                        <i class="fas fa-shopping-cart"></i> Order Updates
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="payment_notifications" class="form-check-input" id="payment_notifications" {% if prefs.payment_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="payment_notifications">
+                                        <i class="fas fa-credit-card"></i> Payment Updates
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="product_notifications" class="form-check-input" id="product_notifications" {% if prefs.product_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="product_notifications">
+                                        <i class="fas fa-box"></i> Product Updates
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="supplier_notifications" class="form-check-input" id="supplier_notifications" {% if prefs.supplier_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="supplier_notifications">
+                                        <i class="fas fa-store"></i> Supplier Updates
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="commission_notifications" class="form-check-input" id="commission_notifications" {% if prefs.commission_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="commission_notifications">
+                                        <i class="fas fa-coins"></i> Commission Updates
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="promotional_notifications" class="form-check-input" id="promotional_notifications" {% if prefs.promotional_notifications %}checked{% endif %}>
+                                    <label class="form-check-label" for="promotional_notifications">
+                                        <i class="fas fa-tag"></i> Promotional Offers
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'notifications:list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Notifications
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Preferences
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add New Product - HerosTechnology{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .required-field::after {
+        content: " *";
+        color: red;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #E67E22;
+        box-shadow: 0 0 0 0.2rem rgba(230,126,34,0.25);
+    }
+    .image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        margin-top: 10px;
+        border-radius: 10px;
+        border: 2px solid #dee2e6;
+        padding: 5px;
+    }
+    .help-text {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:supplier' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'products:supplier_products' %}">My Products</a></li>
+                    <li class="breadcrumb-item active">Add New Product</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-primary text-white rounded-top-4">
+                    <h3 class="mb-0"><i class="fas fa-plus-circle"></i> Add New Product</h3>
+                    <p class="mb-0">Fill in the details below to add a new product to your store</p>
+                </div>
+                <div class="card-body p-5">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> Your product will be reviewed by admin before it appears on the platform.
+                        Once approved, customers will see it with "HerosTechnology" as the seller name.
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <h4 class="mb-3"><i class="fas fa-info-circle"></i> Basic Information</h4>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label required-field">Product Name</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+                                {% endif %}
+                                <div class="help-text">Clear, descriptive product name (max 255 characters)</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Brand</label>
+                                {{ form.brand }}
+                                {% if form.brand.errors %}
+                                    <div class="text-danger small mt-1">{{ form.brand.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Category</label>
+                                {{ form.category }}
+                                {% if form.category.errors %}
+                                    <div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Subcategory (Optional)</label>
+                                {{ form.subcategory }}
+                                {% if form.subcategory.errors %}
+                                    <div class="text-danger small mt-1">{{ form.subcategory.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required-field">Short Description</label>
+                            {{ form.short_description }}
+                            {% if form.short_description.errors %}
+                                <div class="text-danger small mt-1">{{ form.short_description.errors.0 }}</div>
+                            {% endif %}
+                            <div class="help-text">Brief description that appears in product listings (max 500 characters)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required-field">Full Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                            <div class="help-text">Detailed product description with features and specifications</div>
+                        </div>
+                        
+                        <!-- Pricing & Stock -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-tag"></i> Pricing & Stock</h4>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">Base Price (excl. VAT)</label>
+                                {{ form.base_price }}
+                                {% if form.base_price.errors %}
+                                    <div class="text-danger small mt-1">{{ form.base_price.errors.0 }}</div>
+                                {% endif %}
+                                <div class="help-text">Price before VAT (18% will be added automatically)</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">Stock Quantity</label>
+                                {{ form.exact_quantity }}
+                                {% if form.exact_quantity.errors %}
+                                    <div class="text-danger small mt-1">{{ form.exact_quantity.errors.0 }}</div>
+                                {% endif %}
+                                <div class="help-text">Exact number of units available (only visible to you and admin)</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Low Stock Threshold</label>
+                                {{ form.low_stock_threshold }}
+                                {% if form.low_stock_threshold.errors %}
+                                    <div class="text-danger small mt-1">{{ form.low_stock_threshold.errors.0 }}</div>
+                                {% endif %}
+                                <div class="help-text">You'll be alerted when stock falls below this number</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Product Specifications -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-microchip"></i> Specifications</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Model Number</label>
+                                {{ form.model_number }}
+                                {% if form.model_number.errors %}
+                                    <div class="text-danger small mt-1">{{ form.model_number.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Warranty (months)</label>
+                                {{ form.warranty_months }}
+                                {% if form.warranty_months.errors %}
+                                    <div class="text-danger small mt-1">{{ form.warranty_months.errors.0 }}</div>
+                                {% endif %}
+                                <div class="help-text">Default: 12 months</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Product Images -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-image"></i> Product Images</h4>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Image Guidelines:</strong> Upload clear, high-quality images (JPG, PNG). Max size: 5MB per image.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required-field">Main Product Image</label>
+                            {{ form.main_image }}
+                            {% if form.main_image.errors %}
+                                <div class="text-danger small mt-1">{{ form.main_image.errors.0 }}</div>
+                            {% endif %}
+                            <div class="help-text">This will be the primary image shown in product listings</div>
+                            <div id="mainImagePreview"></div>
+                        </div>
+                        
+                        <!-- SEO & Metadata -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-chart-line"></i> SEO & Metadata</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Meta Title</label>
+                                {{ form.meta_title }}
+                                {% if form.meta_title.errors %}
+                                    <div class="text-danger small mt-1">{{ form.meta_title.errors.0 }}</div>
+                                {% endif %}
+                                <div class="help-text">SEO title (optional - will use product name if empty)</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tags</label>
+                                {{ form.tags }}
+                                {% if form.tags.errors %}
+                                    <div class="text-danger small mt-1">{{ form.tags.errors.0 }}</div>
+                                {% endif %}
+                                <div class="help-text">Comma-separated tags for search (e.g., laptop, gaming, dell)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Meta Description</label>
+                            {{ form.meta_description }}
+                            {% if form.meta_description.errors %}
+                                <div class="text-danger small mt-1">{{ form.meta_description.errors.0 }}</div>
+                            {% endif %}
+                            <div class="help-text">SEO description (max 500 characters)</div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-flex justify-content-between gap-2">
+                            <a href="{% url 'products:supplier_products' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Submit for Approval
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Main image preview
+    const mainImageInput = document.querySelector('#id_main_image');
+    const mainImagePreview = document.querySelector('#mainImagePreview');
+    
+    mainImageInput.addEventListener('change', function() {
+        mainImagePreview.innerHTML = '';
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.classList.add('image-preview');
+                mainImagePreview.appendChild(img);
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+    
+    // Price calculation preview (optional)
+    const basePriceInput = document.querySelector('#id_base_price');
+    const vatRate = 0.18;
+    
+    function updatePricePreview() {
+        const basePrice = parseFloat(basePriceInput.value) || 0;
+        const vatAmount = basePrice * vatRate;
+        const finalPrice = basePrice + vatAmount;
+        
+        // You can add a price preview element if desired
+        console.log(`Base: ${basePrice}, VAT: ${vatAmount}, Final: ${finalPrice}`);
+    }
+    
+    basePriceInput.addEventListener('input', updatePricePreview);
+</script>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Reports - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-bar"></i> Reports</h2>
+</div>
+
+<!-- Date Range Selector -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row">
+            <div class="col-md-3">
+                <label class="form-label">Date Range</label>
+                <select name="range" class="form-select" onchange="this.form.submit()">
+                    <option value="today" {% if date_range == 'today' %}selected{% endif %}>Today</option>
+                    <option value="week" {% if date_range == 'week' %}selected{% endif %}>This Week</option>
+                    <option value="month" {% if date_range == 'month' %}selected{% endif %}>This Month</option>
+                    <option value="year" {% if date_range == 'year' %}selected{% endif %}>This Year</option>
+                    <option value="custom" {% if date_range == 'custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+            </div>
+            {% if date_range == 'custom' %}
+            <div class="col-md-3">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100">Apply</button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Total Revenue</small>
+                    <h3 class="mb-0">{{ total_revenue|floatformat:0 }} FRW</h3>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Total Orders</small>
+                    <h3 class="mb-0">{{ total_orders }}</h3>
+                </div>
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Average Order Value</small>
+                    <h3 class="mb-0">{{ avg_order_value|floatformat:0 }} FRW</h3>
+                </div>
+                <div class="stats-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Products -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-trophy"></i> Top Selling Products</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Units Sold</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in top_products %}
+                            <tr>
+                                <td>{{ product.name|truncatechars:30 }}</td>
+                                <td>{{ product.total_sold|default:0 }}</td>
+                                <td>{{ product.total_revenue|default:0|floatformat:0 }} FRW</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">No data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Customers -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-crown"></i> Top Customers</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Orders</th>
+                                <th>Total Spent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in top_customers %}
+                            <tr>
+                                <td>{{ customer.email|truncatechars:25 }}</td>
+                                <td>{{ customer.order_count|default:0 }}</td>
+                                <td>{{ customer.total_spent|default:0|floatformat:0 }} FRW</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">No data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

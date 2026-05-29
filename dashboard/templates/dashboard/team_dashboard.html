@@ -1,0 +1,198 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Team Dashboard - HerosTechnology{% endblock %}
+
+{% block dashboard_url %}{% url 'dashboard:team' %}{% endblock %}
+
+{% block sidebar_links %}
+<li class="nav-item">
+    <a class="nav-link active" href="{% url 'dashboard:team' %}">
+        <i class="fas fa-tachometer-alt"></i> Overview
+    </a>
+</li>
+{% if permissions.can_view_orders %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'orders:admin_orders' %}">
+        <i class="fas fa-shopping-cart"></i> Orders
+    </a>
+</li>
+{% endif %}
+{% if permissions.can_view_products %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'dashboard:manage_products' %}">
+        <i class="fas fa-box"></i> Products
+    </a>
+</li>
+{% endif %}
+{% if permissions.can_manage_suppliers %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'dashboard:manage_suppliers' %}">
+        <i class="fas fa-store"></i> Suppliers
+    </a>
+</li>
+{% endif %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'team:tasks' %}">
+        <i class="fas fa-tasks"></i> My Tasks
+    </a>
+</li>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-users"></i> Team Dashboard</h2>
+    <div>
+        <span class="text-muted">Welcome, {{ request.user.full_name|default:request.user.email }}</span>
+    </div>
+</div>
+
+<!-- Welcome Card -->
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i>
+    <strong>Team Member Access</strong><br>
+    You have limited access based on your assigned permissions. Contact admin if you need additional permissions.
+</div>
+
+<div class="row">
+    <!-- Tasks Summary -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tasks"></i> My Tasks</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span>Pending Tasks</span>
+                        <span class="badge bg-warning">0</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span>In Progress</span>
+                        <span class="badge bg-info">0</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span>Completed</span>
+                        <span class="badge bg-success">0</span>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a href="{% url 'team:tasks' %}" class="btn btn-primary w-100">View My Tasks</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Available Sections -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-lock-open"></i> Available Sections</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% if permissions.can_view_orders %}
+                    <a href="{% url 'orders:admin_orders' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-shopping-cart"></i> Orders Management
+                    </a>
+                    {% endif %}
+                    {% if permissions.can_view_products %}
+                    <a href="{% url 'dashboard:manage_products' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-box"></i> Products Management
+                    </a>
+                    {% endif %}
+                    {% if permissions.can_manage_suppliers %}
+                    <a href="{% url 'dashboard:manage_suppliers' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-store"></i> Suppliers Management
+                    </a>
+                    {% endif %}
+                    {% if permissions.can_view_logs %}
+                    <a href="{% url 'dashboard:activity_logs' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-history"></i> Activity Logs
+                    </a>
+                    {% endif %}
+                    {% if permissions.can_view_financial %}
+                    <a href="{% url 'orders:commission_dashboard' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-coins"></i> Financial Data
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders (if permission exists) -->
+{% if permissions.can_view_orders and recent_orders %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-shopping-cart"></i> Recent Orders</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>{{ order.order_number }}</td>
+                                <td>{{ order.customer.email|truncatechars:20 }}</td>
+                                <td>{{ order.grand_total|floatformat:0 }} FRW</td>
+                                <td>{{ order.get_order_status_display }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Products (if permission exists) -->
+{% if permissions.can_view_products and recent_products %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-box"></i> Recent Products</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in recent_products %}
+                            <tr>
+                                <td>{{ product.name|truncatechars:30 }}</td>
+                                <td>{{ product.final_price|floatformat:0 }} FRW</td>
+                                <td>{{ product.exact_quantity }}</td>
+                                <td>{{ product.get_status_display }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

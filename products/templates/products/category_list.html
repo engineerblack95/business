@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ category.name }} - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'products:list' %}">Products</a></li>
+            <li class="breadcrumb-item active">{{ category.name }}</li>
+        </ol>
+    </nav>
+    
+    <!-- Category Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        {% if category.image %}
+                        <img src="{{ category.image.url }}" alt="{{ category.name }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 10px;" class="me-3">
+                        {% else %}
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 80px; height: 80px;">
+                            <i class="fas {{ category.get_icon_class }} fa-2x text-white"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h2 class="mb-0">{{ category.name }}</h2>
+                            {% if category.description %}
+                            <p class="text-muted mb-0 mt-2">{{ category.description }}</p>
+                            {% endif %}
+                            <p class="mb-0 mt-2">
+                                <span class="badge bg-primary">{{ total_count }} products found</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Products Grid -->
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-3 col-sm-6 mb-4">
+            <div class="card h-100 product-card">
+                <div class="position-relative">
+                    {% if product.main_image %}
+                    <img src="{{ product.main_image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                        <i class="fas fa-image fa-3x text-muted"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Stock Badge -->
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <span class="badge bg-{{ product.get_stock_badge_class }}">
+                            {% if product.exact_quantity > 0 %}
+                                <i class="fas fa-check-circle"></i> In Stock
+                            {% else %}
+                                <i class="fas fa-times-circle"></i> Out of Stock
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name|truncatechars:35 }}</h5>
+                    <p class="card-text text-muted small">{{ product.short_description|truncatechars:60 }}</p>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>
+                            <span class="h5 mb-0 text-primary">{{ product.final_price|floatformat:0 }} FRW</span>
+                            <small class="text-muted">incl. VAT</small>
+                        </div>
+                        <div class="text-warning">
+                            {% with rating=product.rating|floatformat:"0" %}
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endwith %}
+                            <small class="text-muted">({{ product.rating_count }})</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'products:detail' product.slug %}" class="btn btn-primary w-100">
+                        <i class="fas fa-eye"></i> View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-search fa-3x mb-3"></i>
+                <h5>No products found in this category</h5>
+                <p>Check back later for new products in the {{ category.name }} category.</p>
+                <a href="{% url 'products:list' %}" class="btn btn-primary">Browse All Products</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if products.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if products.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ products.previous_page_number }}">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
+            </li>
+            {% endif %}
+            
+            {% for num in products.paginator.page_range %}
+                {% if products.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if products.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ products.next_page_number }}">
+                    Next <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<style>
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+.card-img-top {
+    transition: transform 0.3s ease;
+}
+.product-card:hover .card-img-top {
+    transform: scale(1.05);
+}
+.position-relative {
+    overflow: hidden;
+}
+</style>
+{% endblock %}

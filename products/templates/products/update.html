@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Product - HerosTechnology{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .required-field::after {
+        content: " *";
+        color: red;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #E67E22;
+        box-shadow: 0 0 0 0.2rem rgba(230,126,34,0.25);
+    }
+    .image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        margin-top: 10px;
+        border-radius: 10px;
+        border: 2px solid #dee2e6;
+        padding: 5px;
+    }
+    .current-image {
+        max-width: 150px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:supplier' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'products:supplier_products' %}">My Products</a></li>
+                    <li class="breadcrumb-item active">Edit Product</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-warning text-dark rounded-top-4">
+                    <h3 class="mb-0"><i class="fas fa-edit"></i> Edit Product: {{ product.name }}</h3>
+                    <p class="mb-0">Update your product information</p>
+                </div>
+                <div class="card-body p-5">
+                    {% if product.status == 'approved' %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Note:</strong> Editing an approved product will require re-approval from admin.
+                        The product will be hidden from customers until approved again.
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <h4 class="mb-3"><i class="fas fa-info-circle"></i> Basic Information</h4>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label required-field">Product Name</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Brand</label>
+                                {{ form.brand }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Category</label>
+                                {{ form.category }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Subcategory</label>
+                                {{ form.subcategory }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required-field">Short Description</label>
+                            {{ form.short_description }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required-field">Full Description</label>
+                            {{ form.description }}
+                        </div>
+                        
+                        <!-- Pricing & Stock -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-tag"></i> Pricing & Stock</h4>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">Base Price (excl. VAT)</label>
+                                {{ form.base_price }}
+                                <div class="help-text">Current: {{ product.base_price|floatformat:0 }} FRW</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">Stock Quantity</label>
+                                {{ form.exact_quantity }}
+                                <div class="help-text">Current: {{ product.exact_quantity }} units</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Low Stock Threshold</label>
+                                {{ form.low_stock_threshold }}
+                            </div>
+                        </div>
+                        
+                        <!-- Current Image -->
+                        {% if product.main_image %}
+                        <div class="mb-3">
+                            <label class="form-label">Current Main Image</label>
+                            <div>
+                                <img src="{{ product.main_image.url }}" class="current-image" alt="{{ product.name }}">
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- New Image -->
+                        <div class="mb-3">
+                            <label class="form-label">Change Main Image (Optional)</label>
+                            {{ form.main_image }}
+                            <div id="mainImagePreview"></div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-flex justify-content-between gap-2">
+                            <a href="{% url 'products:supplier_products' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Update Product
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const mainImageInput = document.querySelector('#id_main_image');
+    const mainImagePreview = document.querySelector('#mainImagePreview');
+    
+    mainImageInput.addEventListener('change', function() {
+        mainImagePreview.innerHTML = '';
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.classList.add('image-preview');
+                mainImagePreview.appendChild(img);
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+</script>
+{% endblock %}

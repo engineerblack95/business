@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'products:list' %}">Products</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'products:category' product.category.slug %}">{{ product.category.name }}</a></li>
+            <li class="breadcrumb-item active">{{ product.name|truncatechars:30 }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <!-- Product Images -->
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if product.main_image %}
+                    <img src="{{ product.main_image.url }}" alt="{{ product.name }}" class="img-fluid rounded" style="max-height: 400px;">
+                    {% else %}
+                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 400px;">
+                        <i class="fas fa-image fa-5x text-muted"></i>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if product.additional_images.exists %}
+            <div class="row mt-3">
+                {% for img in product.additional_images.all|slice:":4" %}
+                <div class="col-3">
+                    <img src="{{ img.image.url }}" class="img-thumbnail" style="height: 80px; object-fit: cover;">
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Product Info -->
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">{{ product.name }}</h2>
+                    
+                    <div class="mb-3">
+                        <span class="text-warning">
+                            {% with rating=product.rating|floatformat:"0" %}
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endwith %}
+                            <span class="text-muted">({{ product.rating_count }} reviews)</span>
+                        </span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h3 class="text-primary">{{ product.final_price|floatformat:0 }} FRW</h3>
+                        <small class="text-muted">VAT 18% included</small>
+                    </div>
+                    
+                    <!-- Stock Status (CRITICAL: Customer sees only In/Out) -->
+                    <div class="mb-3">
+                        <span class="badge bg-{{ stock_badge_class }} fs-6 p-2">
+                            <i class="fas {% if product.is_in_stock %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+                            {{ stock_label }}
+                        </span>
+                    </div>
+                    
+                    <!-- Seller Info (Always shows HerosTechnology) -->
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-store"></i> Sold by: <strong>{{ owner_name }}</strong>
+                        </small>
+                    </div>
+                    
+                    <!-- Brand & Warranty -->
+                    <div class="mb-3">
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="40%">Brand:</th>
+                                <td>{{ product.brand|default:"N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Model:</th>
+                                <td>{{ product.model_number|default:"N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Warranty:</th>
+                                <td>{{ product.warranty_months }} months</td>
+                            </tr>
+                            <tr>
+                                <th>Product ID:</th>
+                                <td>{{ product.id|truncatechars:8 }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- Action Buttons - FIXED: Changed cart:add to orders:add_to_cart -->
+                    <div class="d-flex gap-2">
+                        {% if product.is_in_stock %}
+                        <form action="{% url 'orders:add_to_cart' product.id %}" method="post" class="flex-grow-1">
+                            {% csrf_token %}
+                            <div class="input-group">
+                                <input type="number" name="quantity" value="1" min="1" max="{{ product.exact_quantity }}" class="form-control" style="width: 80px;">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-shopping-cart"></i> Add to Cart
+                                </button>
+                            </div>
+                        </form>
+                        {% else %}
+                        <button class="btn btn-secondary flex-grow-1" disabled>
+                            <i class="fas fa-times-circle"></i> Out of Stock
+                        </button>
+                        {% endif %}
+                        
+                        {% if user.is_authenticated and user.role == 'customer' %}
+                        <a href="{% url 'products:add_to_wishlist' product.id %}" class="btn btn-outline-danger">
+                            <i class="fas fa-heart"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Share Links -->
+                    <hr class="my-3">
+                    <div>
+                        <small>Share:</small>
+                        <a href="#" class="text-decoration-none me-2"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-decoration-none me-2"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-decoration-none"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Product Description -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#description">Description</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#specifications">Specifications</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#reviews">Reviews ({{ reviews.count }})</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body tab-content">
+                    <div class="tab-pane fade show active" id="description">
+                        <p>{{ product.description|linebreaks }}</p>
+                    </div>
+                    <div class="tab-pane fade" id="specifications">
+                        <table class="table">
+                            <tr>
+                                <th width="30%">Brand</th>
+                                <td>{{ product.brand|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Model Number</th>
+                                <td>{{ product.model_number|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Warranty</th>
+                                <td>{{ product.warranty_months }} months</td>
+                            </tr>
+                            <tr>
+                                <th>Base Price (excl. VAT)</th>
+                                <td>{{ product.base_price|floatformat:0 }} FRW</td>
+                            </tr>
+                            <tr>
+                                <th>VAT (18%)</th>
+                                <td>{{ product.vat_amount|floatformat:0 }} FRW</td>
+                            </tr>
+                            <tr>
+                                <th>Final Price</th>
+                                <td>{{ product.final_price|floatformat:0 }} FRW</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade" id="reviews">
+                        {% if user.is_authenticated and user.role == 'customer' %}
+                        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#reviewModal">
+                            <i class="fas fa-star"></i> Write a Review
+                        </button>
+                        {% endif %}
+                        
+                        {% for review in reviews %}
+                        <div class="border-bottom mb-3 pb-3">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>{{ review.customer.full_name|default:review.customer.email|truncatechars:20 }}</strong>
+                                    <div class="text-warning">
+                                        {% for i in "12345"|make_list %}
+                                            {% if forloop.counter <= review.rating %}
+                                                <i class="fas fa-star"></i>
+                                            {% else %}
+                                                <i class="far fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <p class="mt-2">{{ review.comment }}</p>
+                                    {% if review.is_verified_purchase %}
+                                    <small class="text-success"><i class="fas fa-check-circle"></i> Verified Purchase</small>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ review.created_at|date:"M d, Y" }}</small>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted">No reviews yet. Be the first to review this product!</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Related Products -->
+    {% if related_products %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4 class="mb-3">Related Products</h4>
+            <div class="row">
+                {% for related in related_products %}
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100">
+                        {% if related.main_image %}
+                        <img src="{{ related.main_image.url }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                        {% endif %}
+                        <div class="card-body">
+                            <h6 class="card-title">{{ related.name|truncatechars:30 }}</h6>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h6 mb-0">{{ related.final_price|floatformat:0 }} FRW</span>
+                                <span class="badge bg-{{ related.get_stock_badge_class }}">{{ related.get_stock_label }}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{% url 'products:detail' related.slug %}" class="btn btn-sm btn-outline-primary w-100">View</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Review Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Write a Review for {{ product.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'products:add_review' product.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Rating</label>
+                        {{ review_form.rating }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        {{ review_form.title }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Your Review</label>
+                        {{ review_form.comment }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Order Confirmation - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card text-center">
+                <div class="card-body py-5">
+                    <i class="fas fa-check-circle fa-5x text-success mb-3"></i>
+                    <h2 class="mb-3">Thank You for Your Order!</h2>
+                    <p class="lead">Your order has been confirmed and will be processed soon.</p>
+                    
+                    <div class="alert alert-info mt-4">
+                        <strong>Order Number:</strong> {{ order.order_number }}
+                        <br>
+                        <strong>Total Amount:</strong> {{ order.grand_total|floatformat:0 }} FRW
+                        <br>
+                        <strong>Payment Status:</strong> {{ order.get_payment_status_display }}
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>What's Next?</h5>
+                        <p>You will receive a confirmation email shortly with your receipt.</p>
+                        <p>Our team will process your order and update you on the delivery status.</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'orders:download_receipt' order.id %}" class="btn btn-primary">
+                            <i class="fas fa-download"></i> Download Receipt
+                        </a>
+                        <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-eye"></i> View Order Details
+                        </a>
+                        <a href="{% url 'products:list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-shopping"></i> Continue Shopping
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Items Preview -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5>Order Items</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>{{ item.product.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.final_price|floatformat:0 }} FRW</td>
+                                    <td>{{ item.get_total_final_price|floatformat:0 }} FRW</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Subtotal (excl. VAT):</strong></td>
+                                    <td>{{ order.subtotal_base|floatformat:0 }} FRW</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>VAT (18%):</strong></td>
+                                    <td>{{ order.total_vat|floatformat:0 }} FRW</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Grand Total:</strong></td>
+                                    <td><strong>{{ order.grand_total|floatformat:0 }} FRW</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

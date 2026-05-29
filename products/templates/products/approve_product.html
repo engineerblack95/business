@@ -1,0 +1,206 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Approve Product - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-check-double"></i> Review Product: {{ product.name }}</h2>
+    <a href="{% url 'products:admin_approve_list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Pending Products
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Product Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Product Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        {% if product.main_image %}
+                        <img src="{{ product.main_image.url }}" alt="{{ product.name }}" class="img-fluid rounded">
+                        {% else %}
+                        <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-8">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th width="35%">Product Name:</th>
+                                <td>{{ product.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Supplier:</th>
+                                <td>
+                                    {{ product.owner.business_name|default:product.owner.email }}
+                                    <br>
+                                    <small class="text-muted">{{ product.owner.email }}</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Category:</th>
+                                <td>{{ product.category.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Brand:</th>
+                                <td>{{ product.brand|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Base Price (excl. VAT):</th>
+                                <td>{{ product.base_price|floatformat:0 }} FRW</td>
+                            </tr>
+                            <tr>
+                                <th>VAT (18%):</th>
+                                <td>{{ product.vat_amount|floatformat:0 }} FRW</td>
+                            </tr>
+                            <tr>
+                                <th>Final Price:</th>
+                                <td><strong class="text-primary">{{ product.final_price|floatformat:0 }} FRW</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Stock Quantity:</th>
+                                <td>{{ product.exact_quantity }} units</td>
+                            </tr>
+                            <tr>
+                                <th>Warranty:</th>
+                                <td>{{ product.warranty_months }} months</td>
+                            </tr>
+                            <tr>
+                                <th>Submitted:</th>
+                                <td>{{ product.created_at|date:"F j, Y H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Short Description:</h6>
+                    <p>{{ product.short_description|default:"No short description" }}</p>
+                    
+                    <h6>Full Description:</h6>
+                    <p>{{ product.description|linebreaks|default:"No description" }}</p>
+                    
+                    {% if product.tags %}
+                    <h6>Tags:</h6>
+                    <p>{{ product.tags }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Approval Form -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-gavel"></i> Approval Decision</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Status</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger small">{{ form.status.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3" id="rejectionReasonDiv" style="display: none;">
+                        <label class="form-label fw-semibold">Rejection Reason</label>
+                        {{ form.rejection_reason }}
+                        {% if form.rejection_reason.errors %}
+                            <div class="text-danger small">{{ form.rejection_reason.errors }}</div>
+                        {% endif %}
+                        <div class="help-text">Please provide a reason for rejection that will be sent to the supplier</div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Approving will make this product visible to customers</li>
+                            <li>Rejecting will hide the product and notify the supplier</li>
+                            <li>The supplier will be notified of your decision</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Submit Decision
+                        </button>
+                        <a href="{% url 'products:admin_approve_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Supplier Information -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-store"></i> Supplier Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <th>Business Name:</th>
+                        <td>{{ product.owner.business_name|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Email:</th>
+                        <td>{{ product.owner.email }}</td>
+                    </tr>
+                    <tr>
+                        <th>Phone:</th>
+                        <td>{{ product.owner.phone|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Joined:</th>
+                        <td>{{ product.owner.date_joined|date:"F j, Y" }}</td>
+                    </tr>
+                </table>
+                <a href="{% url 'suppliers:supplier_detail' product.owner.id %}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="fas fa-eye"></i> View Supplier Details
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide rejection reason field based on status selection
+    const statusSelect = document.querySelector('#id_status');
+    const rejectionReasonDiv = document.querySelector('#rejectionReasonDiv');
+    
+    function toggleRejectionReason() {
+        if (statusSelect.value === 'rejected') {
+            rejectionReasonDiv.style.display = 'block';
+        } else {
+            rejectionReasonDiv.style.display = 'none';
+        }
+    }
+    
+    statusSelect.addEventListener('change', toggleRejectionReason);
+    toggleRejectionReason();
+</script>
+
+<style>
+    .help-text {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    .table-bordered th {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}

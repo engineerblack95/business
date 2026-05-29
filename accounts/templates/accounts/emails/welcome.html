@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #2C3E50 0%, #1A252F 100%); color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; background: #f9f9f9; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #777; }
+        .button { display: inline-block; padding: 10px 20px; background: #E67E22; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>HerosTechnology</h1>
+            <p>Welcome to the Family!</p>
+        </div>
+        <div class="content">
+            <p>Hello {{ user.full_name|default:user.email }},</p>
+            <p>Welcome to HerosTechnology! Your account has been successfully created and verified.</p>
+            <p>You can now:</p>
+            <ul>
+                <li>🛍️ Browse thousands of quality electronics</li>
+                <li>🚚 Get fast delivery across Rwanda</li>
+                <li>💰 Secure mobile money payments</li>
+                <li>⭐ Leave reviews on products</li>
+            </ul>
+            <p style="text-align: center;">
+                <a href="{{ site_url }}/products/" class="button">Start Shopping Now</a>
+            </p>
+            <p>Happy Shopping!<br>
+            <strong>HerosTechnology Team</strong></p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2024 HerosTechnology. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

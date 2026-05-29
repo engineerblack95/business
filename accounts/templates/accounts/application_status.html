@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Application Status - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-file-alt"></i> Supplier Application Status</h4>
+                </div>
+                <div class="card-body text-center py-5">
+                    {% if application.status == 'pending' %}
+                        <i class="fas fa-clock fa-4x text-warning mb-3"></i>
+                        <h3>Application Under Review</h3>
+                        <p class="text-muted">Your supplier application has been submitted and is pending review by our team.</p>
+                        <div class="alert alert-info mt-3">
+                            <strong>Application #:</strong> {{ application.application_number }}<br>
+                            <strong>Submitted:</strong> {{ application.created_at|date:"F j, Y H:i" }}<br>
+                            <strong>Status:</strong> <span class="badge bg-warning">Pending Review</span>
+                        </div>
+                        <p>We will notify you via email once your application has been reviewed.</p>
+                        
+                    {% elif application.status == 'reviewing' %}
+                        <i class="fas fa-search fa-4x text-info mb-3"></i>
+                        <h3>Application Being Reviewed</h3>
+                        <p class="text-muted">Our team is currently reviewing your application and documents.</p>
+                        <div class="alert alert-info mt-3">
+                            <strong>Application #:</strong> {{ application.application_number }}<br>
+                            <strong>Submitted:</strong> {{ application.created_at|date:"F j, Y H:i" }}<br>
+                            <strong>Status:</strong> <span class="badge bg-info">Under Review</span>
+                        </div>
+                        
+                    {% elif application.status == 'approved' %}
+                        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                        <h3>Application Approved! 🎉</h3>
+                        <p class="text-muted">Congratulations! Your supplier application has been approved.</p>
+                        <div class="alert alert-success mt-3">
+                            <strong>Application #:</strong> {{ application.application_number }}<br>
+                            <strong>Approved:</strong> {{ application.approved_at|date:"F j, Y H:i" }}<br>
+                            <strong>Status:</strong> <span class="badge bg-success">Approved</span>
+                        </div>
+                        <p>You can now start adding products to the platform.</p>
+                        <a href="{% url 'products:supplier_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Your First Product
+                        </a>
+                        
+                    {% elif application.status == 'rejected' %}
+                        <i class="fas fa-times-circle fa-4x text-danger mb-3"></i>
+                        <h3>Application Not Approved</h3>
+                        <p class="text-muted">We appreciate your interest, but your application was not approved at this time.</p>
+                        <div class="alert alert-danger mt-3">
+                            <strong>Reason:</strong> {{ application.rejection_reason|default:"Not specified" }}
+                        </div>
+                        <p>You can re-apply after 30 days or contact support for more information.</p>
+                        
+                    {% elif application.status == 'additional_info' %}
+                        <i class="fas fa-info-circle fa-4x text-warning mb-3"></i>
+                        <h3>Additional Information Required</h3>
+                        <p class="text-muted">Please provide the following information to complete your application.</p>
+                        <div class="alert alert-warning mt-3">
+                            <strong>Request:</strong> {{ application.additional_info_request }}
+                        </div>
+                        <a href="{% url 'suppliers:apply' %}" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Update Application
+                        </a>
+                    {% endif %}
+                    
+                    <hr class="my-4">
+                    <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

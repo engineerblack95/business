@@ -1,0 +1,267 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-line"></i> Admin Dashboard</h2>
+    <div>
+        <span class="text-muted">{{ request.user.email }}</span>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <small class="text-muted">Total Revenue</small>
+                    <h3 class="mb-0">{{ analytics.revenue.total|floatformat:0 }} FRW</h3>
+                    <small class="text-success">+{{ analytics.revenue.month|floatformat:0 }} this month</small>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <small class="text-muted">Total Orders</small>
+                    <h3 class="mb-0">{{ analytics.orders.total }}</h3>
+                    <small class="text-warning">{{ analytics.orders.pending }} pending</small>
+                </div>
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <small class="text-muted">Active Products</small>
+                    <h3 class="mb-0">{{ analytics.products.approved }}</h3>
+                    <small class="text-warning">{{ analytics.products.pending }} pending</small>
+                </div>
+                <div class="stats-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-box"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <small class="text-muted">Available Commission</small>
+                    <h3 class="mb-0">{{ analytics.commission.total_available|floatformat:0 }} FRW</h3>
+                    <small>Ready for withdrawal</small>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-coins"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Daily Sales Chart -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Last 7 Days Sales</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" height="250"></canvas>
+            </div>
+        </div>
+        
+        <!-- Recent Orders -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Orders</h5>
+                <a href="{% url 'orders:admin_orders' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in analytics.recent_orders %}
+                            <tr>
+                                <td><strong>{{ order.order_number }}</strong></td>
+                                <td>{{ order.customer.email|truncatechars:20 }}</td>
+                                <td>{{ order.grand_total|floatformat:0 }} FRW</td>
+                                <td>
+                                    <span class="badge {% if order.order_status == 'delivered' %}bg-success{% elif order.order_status == 'pending' %}bg-warning{% elif order.order_status == 'processing' %}bg-info{% elif order.order_status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        {{ order.get_order_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No orders found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Pending Suppliers -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Pending Suppliers</h5>
+            </div>
+            <div class="card-body">
+                {% for supplier in recent_suppliers %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <strong>{{ supplier.full_name|default:supplier.email|truncatechars:20 }}</strong>
+                        <br>
+                        <small class="text-muted">{{ supplier.business_name|default:"No business name" }}</small>
+                    </div>
+                    <a href="{% url 'dashboard:approve_supplier' supplier.id %}" class="btn btn-sm btn-success" onclick="return confirm('Approve this supplier?')">
+                        <i class="fas fa-check"></i> Approve
+                    </a>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center">No pending supplier applications</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Pending Withdrawals -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Withdrawal Requests</h5>
+                <a href="{% url 'orders:commission_dashboard' %}" class="btn btn-sm btn-primary">View</a>
+            </div>
+            <div class="card-body">
+                {% for withdrawal in recent_withdrawals %}
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{{ withdrawal.request_reference }}</span>
+                    <span class="fw-bold">{{ withdrawal.amount|floatformat:0 }} FRW</span>
+                </div>
+                <div class="small text-muted mb-2">
+                    Status: 
+                    <span class="badge {% if withdrawal.status == 'pending' %}bg-warning{% elif withdrawal.status == 'approved' %}bg-info{% elif withdrawal.status == 'completed' %}bg-success{% elif withdrawal.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                        {{ withdrawal.get_status_display }}
+                    </span>
+                </div>
+                <hr>
+                {% empty %}
+                <p class="text-muted text-center">No withdrawal requests</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Stats Summary -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Platform Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Total Customers:</span>
+                    <strong>{{ analytics.users.customers }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Active Suppliers:</span>
+                    <strong>{{ analytics.users.suppliers }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Pending Suppliers:</span>
+                    <strong class="text-warning">{{ analytics.users.pending_suppliers }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Team Members:</span>
+                    <strong>{{ analytics.users.team_members }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Low Stock Products:</span>
+                    <strong class="text-warning">{{ analytics.products.low_stock }}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Out of Stock:</span>
+                    <strong class="text-danger">{{ analytics.products.out_of_stock }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Sales Chart
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [{% for day in analytics.daily_sales %}'{{ day.date }}',{% endfor %}],
+            datasets: [{
+                label: 'Sales (FRW)',
+                data: [{% for day in analytics.daily_sales %}{{ day.sales }},{% endfor %}],
+                borderColor: '#E67E22',
+                backgroundColor: 'rgba(230, 126, 34, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += new Intl.NumberFormat().format(context.raw) + ' FRW';
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat().format(value) + ' FRW';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

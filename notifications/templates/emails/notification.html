@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ notification.title }} - HerosTechnology</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #2C3E50 0%, #1A252F 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .notification-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #E67E22;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #dee2e6;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #E67E22;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .button:hover {
+            background: #D35400;
+        }
+        .priority-high {
+            border-left-color: #dc3545;
+        }
+        .priority-medium {
+            border-left-color: #ffc107;
+        }
+        .priority-low {
+            border-left-color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>HerosTechnology</h1>
+            <p>Your Trusted Electronics Marketplace</p>
+        </div>
+        
+        <div class="content">
+            <div class="notification-box {% if notification.priority == 'high' %}priority-high{% elif notification.priority == 'medium' %}priority-medium{% else %}priority-low{% endif %}">
+                <h2>{{ notification.title }}</h2>
+                <p>{{ notification.message|linebreaks }}</p>
+                
+                {% if notification.link %}
+                <p style="text-align: center;">
+                    <a href="{{ site_url }}{{ notification.link }}" class="button">
+                        {{ notification.action_text }}
+                    </a>
+                </p>
+                {% endif %}
+            </div>
+            
+            <p>If you have any questions, please contact our support team at <a href="mailto:support@herostechnology.com">support@herostechnology.com</a></p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2024 HerosTechnology. All rights reserved.</p>
+            <p>Kigali, Rwanda | +250 788 123 456 | info@herostechnology.com</p>
+            <p>
+                <a href="{{ site_url }}">Visit our website</a> | 
+                <a href="#">Privacy Policy</a> | 
+                <a href="#">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

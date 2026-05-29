@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-credit-card"></i> Complete Payment</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Order #: {{ order.order_number }}</strong><br>
+                        <strong>Amount to Pay:</strong> {{ grand_total|floatformat:0 }} FRW
+                    </div>
+                    
+                    <h5>Select Payment Method</h5>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_method" id="simulated" value="simulated" checked>
+                                <label class="form-check-label" for="simulated">
+                                    <i class="fas fa-laptop-code"></i> Simulated Payment (Development)
+                                </label>
+                            </div>
+                            <small class="text-muted ms-4">For testing purposes - no real money transferred</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_method" id="mobile_money" value="mobile_money_mtn">
+                                <label class="form-check-label" for="mobile_money">
+                                    <i class="fas fa-mobile-alt"></i> Mobile Money
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="mobileMoneyForm" style="display: none;">
+                            <div class="ms-4 mb-3">
+                                <label class="form-label">Select Provider</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="provider" value="mtn" id="mtn">
+                                    <label class="form-check-label" for="mtn">
+                                        <img src="{% static 'img/mtn.png' %}" alt="MTN" height="20"> MTN Mobile Money
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="provider" value="airtel" id="airtel">
+                                    <label class="form-check-label" for="airtel">
+                                        <img src="{% static 'img/airtel.png' %}" alt="Airtel" height="20"> Airtel Money
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="ms-4 mb-3">
+                                <label class="form-label">Mobile Money Number</label>
+                                {{ form.mobile_money_number }}
+                                <small class="text-muted">Enter the phone number registered with mobile money</small>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mt-3">
+                            <i class="fas fa-check-circle"></i> Pay Now
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>Order Summary</h6>
+                    <div class="d-flex justify-content-between">
+                        <span>Subtotal (excl. VAT):</span>
+                        <span>{{ order.subtotal_base|floatformat:0 }} FRW</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>VAT (18%):</span>
+                        <span>{{ order.total_vat|floatformat:0 }} FRW</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>Total:</span>
+                        <span>{{ order.grand_total|floatformat:0 }} FRW</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const mobileMoneyRadio = document.getElementById('mobile_money');
+    const simulatedRadio = document.getElementById('simulated');
+    const mobileForm = document.getElementById('mobileMoneyForm');
+    
+    mobileMoneyRadio.addEventListener('change', function() {
+        if (this.checked) {
+            mobileForm.style.display = 'block';
+        }
+    });
+    
+    simulatedRadio.addEventListener('change', function() {
+        if (this.checked) {
+            mobileForm.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

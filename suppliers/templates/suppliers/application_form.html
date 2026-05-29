@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Become a Supplier - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-primary text-white rounded-top-4">
+                    <h3 class="mb-0"><i class="fas fa-store"></i> Supplier Application Form</h3>
+                    <p class="mb-0">Join our marketplace and grow your business</p>
+                </div>
+                <div class="card-body p-5">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Business Information -->
+                        <h4 class="mb-3"><i class="fas fa-building"></i> Business Information</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Business Name *</label>
+                                {{ form.business_name }}
+                                {% if form.business_name.errors %}
+                                    <div class="text-danger small">{{ form.business_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Business Type</label>
+                                {{ form.business_type }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Tax ID (TIN)</label>
+                                {{ form.tax_id }}
+                                <small class="text-muted">Optional but recommended</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Registration Number</label>
+                                {{ form.registration_number }}
+                            </div>
+                        </div>
+                        
+                        <!-- Contact Information -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-phone-alt"></i> Contact Information</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Business Phone *</label>
+                                {{ form.business_phone }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Business Email *</label>
+                                {{ form.business_email }}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-semibold">Business Address *</label>
+                                {{ form.business_address }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">City</label>
+                                {{ form.business_city }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Country</label>
+                                {{ form.business_country }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Website</label>
+                                {{ form.website }}
+                            </div>
+                        </div>
+                        
+                        <!-- Business Details -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-chart-line"></i> Business Details</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Years in Business</label>
+                                {{ form.years_in_business }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Est. Monthly Volume (FRW)</label>
+                                {{ form.estimated_monthly_volume }}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-semibold">Interested Categories</label>
+                                {{ form.interested_categories }}
+                                <small class="text-muted">Hold Ctrl to select multiple</small>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-semibold">Additional Notes</label>
+                                {{ form.notes }}
+                            </div>
+                        </div>
+                        
+                        <!-- Documents -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-file-alt"></i> Required Documents</h4>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Please upload clear, legible copies of the following documents (PDF, JPG, PNG - max 10MB each)
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Business License/Certificate *</label>
+                                {{ form.business_license }}
+                                {% if form.business_license.errors %}
+                                    <div class="text-danger small">{{ form.business_license.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Government ID (Passport/National ID) *</label>
+                                {{ form.id_document }}
+                                {% if form.id_document.errors %}
+                                    <div class="text-danger small">{{ form.id_document.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Tax Clearance Certificate</label>
+                                {{ form.tax_clearance }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Bank Statement (for payouts)</label>
+                                {{ form.bank_statement }}
+                            </div>
+                        </div>
+                        
+                        <!-- Terms -->
+                        <div class="form-check mb-4">
+                            {{ form.terms_agreed }}
+                            <label class="form-check-label">
+                                I confirm that all information provided is accurate and I agree to the 
+                                <a href="#" target="_blank">Supplier Terms and Conditions</a>
+                            </label>
+                            {% if form.terms_agreed.errors %}
+                                <div class="text-danger small">{{ form.terms_agreed.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-paper-plane"></i> Submit Application
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

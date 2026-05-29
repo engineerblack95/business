@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Apply to Become a Supplier - HerosTechnology{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-control:focus, .form-select:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 0.2rem rgba(230,126,34,0.25);
+    }
+    .required-field::after {
+        content: " *";
+        color: red;
+    }
+    .document-upload {
+        border: 2px dashed #dee2e6;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .document-upload:hover {
+        border-color: var(--secondary-color);
+        background-color: #f8f9fa;
+    }
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-primary text-white rounded-top-4">
+                    <h3 class="mb-0"><i class="fas fa-store"></i> Supplier Application</h3>
+                    <p class="mb-0">Join our marketplace and grow your business</p>
+                </div>
+                <div class="card-body p-5">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Important Information:</strong> Please ensure all documents are clear and up-to-date. 
+                        Applications are typically reviewed within 2-3 business days.
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Business Information -->
+                        <h4 class="mb-3"><i class="fas fa-building"></i> Business Information</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Business Name</label>
+                                {{ form.business_name }}
+                                {% if form.business_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Business Type</label>
+                                {{ form.business_type }}
+                                {% if form.business_type.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_type.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tax ID (TIN)</label>
+                                {{ form.tax_id }}
+                                <small class="text-muted d-block">Optional but recommended</small>
+                                {% if form.tax_id.errors %}
+                                    <div class="text-danger small mt-1">{{ form.tax_id.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Registration Number</label>
+                                {{ form.registration_number }}
+                                {% if form.registration_number.errors %}
+                                    <div class="text-danger small mt-1">{{ form.registration_number.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Contact Information -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-phone-alt"></i> Contact Information</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Business Phone</label>
+                                {{ form.business_phone }}
+                                {% if form.business_phone.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_phone.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Business Email</label>
+                                {{ form.business_email }}
+                                {% if form.business_email.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label required-field">Business Address</label>
+                                {{ form.business_address }}
+                                {% if form.business_address.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_address.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">City</label>
+                                {{ form.business_city }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Country</label>
+                                {{ form.business_country }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Website</label>
+                                {{ form.website }}
+                            </div>
+                        </div>
+                        
+                        <!-- Business Details -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-chart-line"></i> Business Details</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Years in Business</label>
+                                {{ form.years_in_business }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Est. Monthly Volume (FRW)</label>
+                                {{ form.estimated_monthly_volume }}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Interested Categories</label>
+                                {{ form.interested_categories }}
+                                <small class="text-muted d-block">Hold Ctrl (Windows) or Cmd (Mac) to select multiple</small>
+                                {% if form.interested_categories.errors %}
+                                    <div class="text-danger small mt-1">{{ form.interested_categories.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Additional Notes</label>
+                                {{ form.notes }}
+                            </div>
+                        </div>
+                        
+                        <!-- Documents -->
+                        <h4 class="mb-3 mt-4"><i class="fas fa-file-alt"></i> Required Documents</h4>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Please upload clear, legible copies (PDF, JPG, PNG - max 10MB each)
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Business License/Certificate</label>
+                                <div class="document-upload">
+                                    <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                    {{ form.business_license }}
+                                    <small class="text-muted d-block">Click to upload or drag and drop</small>
+                                </div>
+                                {% if form.business_license.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_license.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Government ID (Passport/National ID)</label>
+                                <div class="document-upload">
+                                    <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                    {{ form.id_document }}
+                                    <small class="text-muted d-block">Click to upload or drag and drop</small>
+                                </div>
+                                {% if form.id_document.errors %}
+                                    <div class="text-danger small mt-1">{{ form.id_document.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tax Clearance Certificate</label>
+                                <div class="document-upload">
+                                    <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                    {{ form.tax_clearance }}
+                                    <small class="text-muted d-block">Optional</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Bank Statement (for payouts)</label>
+                                <div class="document-upload">
+                                    <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                    {{ form.bank_statement }}
+                                    <small class="text-muted d-block">Recommended for faster payouts</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Terms -->
+                        <div class="form-check mb-4 mt-4">
+                            {{ form.terms_agreed }}
+                            <label class="form-check-label" for="id_terms_agreed">
+                                I confirm that all information provided is accurate and I agree to the 
+                                <a href="#" target="_blank">Supplier Terms and Conditions</a>
+                            </label>
+                            {% if form.terms_agreed.errors %}
+                                <div class="text-danger small mt-1">{{ form.terms_agreed.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane"></i> Submit Application
+                            </button>
+                            <a href="{% url 'dashboard:customer' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// File upload preview enhancement
+document.querySelectorAll('.document-upload input[type="file"]').forEach(input => {
+    input.addEventListener('change', function() {
+        const fileName = this.files[0]?.name;
+        const parentDiv = this.closest('.document-upload');
+        if (fileName) {
+            // Store the original input
+            const originalInput = this.cloneNode(true);
+            originalInput.addEventListener('change', arguments.callee);
+            
+            parentDiv.innerHTML = `<i class="fas fa-file-alt fa-2x text-success mb-2"></i>
+                                    <div><strong>${fileName}</strong></div>
+                                    <small class="text-muted">Click to change file</small>`;
+            parentDiv.appendChild(originalInput);
+        }
+    });
+});
+</script>
+{% endblock %}

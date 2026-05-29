@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-bell"></i> Notifications</h2>
+                <div>
+                    <a href="{% url 'notifications:mark_all_read' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-check-double"></i> Mark All Read
+                    </a>
+                    <a href="{% url 'notifications:delete_all_read' %}" class="btn btn-outline-danger btn-sm ms-2">
+                        <i class="fas fa-trash"></i> Delete Read
+                    </a>
+                    <a href="{% url 'notifications:preferences' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                        <i class="fas fa-cog"></i> Preferences
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Type</label>
+                            <select class="form-select" id="typeFilter">
+                                <option value="">All Types</option>
+                                <option value="order" {% if current_type == 'order' %}selected{% endif %}>Order Updates</option>
+                                <option value="payment" {% if current_type == 'payment' %}selected{% endif %}>Payment Updates</option>
+                                <option value="product" {% if current_type == 'product' %}selected{% endif %}>Product Updates</option>
+                                <option value="supplier" {% if current_type == 'supplier' %}selected{% endif %}>Supplier Updates</option>
+                                <option value="commission" {% if current_type == 'commission' %}selected{% endif %}>Commission Updates</option>
+                                <option value="system" {% if current_type == 'system' %}selected{% endif %}>System Notifications</option>
+                                <option value="alert" {% if current_type == 'alert' %}selected{% endif %}>Alerts</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Status</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">All</option>
+                                <option value="unread" {% if current_read_filter == 'unread' %}selected{% endif %}>Unread</option>
+                                <option value="read" {% if current_read_filter == 'read' %}selected{% endif %}>Read</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                <i class="fas fa-filter"></i> Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notifications List -->
+            <div class="card">
+                <div class="card-body">
+                    {% if notifications %}
+                        {% for notification in notifications %}
+                        <div class="notification-item {% if not notification.is_read %}unread{% endif %} mb-3 p-3 {% if not notification.is_read %}bg-light{% endif %} rounded"
+                             data-id="{{ notification.id }}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex">
+                                    <div class="notification-icon me-3">
+                                        <i class="fas {{ notification.get_icon_class }} fa-2x 
+                                            {% if notification.priority == 'high' %}text-danger
+                                            {% elif notification.priority == 'medium' %}text-warning
+                                            {% else %}text-secondary{% endif %}">
+                                        </i>
+                                    </div>
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                            <strong>{{ notification.title }}</strong>
+                                            {% if notification.priority == 'high' %}
+                                            <span class="badge bg-danger">High Priority</span>
+                                            {% elif notification.priority == 'urgent' %}
+                                            <span class="badge bg-dark">Urgent</span>
+                                            {% endif %}
+                                            {% if not notification.is_read %}
+                                            <span class="badge bg-primary">New</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="mb-1">{{ notification.message|linebreaks }}</p>
+                                        <small class="text-muted">
+                                            <i class="far fa-clock"></i> {{ notification.created_at|timesince }} ago
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="btn-group">
+                                    {% if not notification.is_read %}
+                                    <button class="btn btn-sm btn-outline-primary mark-read-btn" data-id="{{ notification.id }}">
+                                        <i class="fas fa-check"></i> Mark Read
+                                    </button>
+                                    {% endif %}
+                                    {% if notification.link %}
+                                    <a href="{{ notification.link }}" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-arrow-right"></i> View
+                                    </a>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-outline-danger delete-notification" data-id="{{ notification.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% if not forloop.last %}<hr>{% endif %}
+                        {% endfor %}
+                        
+                        <!-- Pagination -->
+                        {% if notifications.has_other_pages %}
+                        <nav aria-label="Page navigation" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if notifications.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ notifications.previous_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_read_filter %}&is_read={{ current_read_filter }}{% endif %}">
+                                        <i class="fas fa-chevron-left"></i> Previous
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for num in notifications.paginator.page_range %}
+                                    {% if notifications.number == num %}
+                                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                    {% elif num > notifications.number|add:'-3' and num < notifications.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_read_filter %}&is_read={{ current_read_filter }}{% endif %}">
+                                            {{ num }}
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if notifications.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ notifications.next_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_read_filter %}&is_read={{ current_read_filter }}{% endif %}">
+                                        Next <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                        
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                            <h5>No Notifications</h5>
+                            <p class="text-muted">You don't have any notifications yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function applyFilters() {
+        const type = document.getElementById('typeFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        let url = '{% url "notifications:list" %}?';
+        if (type) url += `type=${type}&`;
+        if (status) url += `is_read=${status}&`;
+        window.location.href = url;
+    }
+    
+    // Mark as read
+    document.querySelectorAll('.mark-read-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            fetch(`/notifications/mark-read/${id}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        });
+    });
+    
+    // Delete notification
+    document.querySelectorAll('.delete-notification').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this notification?')) {
+                const id = this.dataset.id;
+                window.location.href = `/notifications/delete/${id}/`;
+            }
+        });
+    });
+</script>
+
+<style>
+    .notification-item {
+        transition: background-color 0.3s ease;
+    }
+    .notification-item.unread {
+        border-left: 4px solid #E67E22;
+        background-color: #FFF8F0;
+    }
+    .notification-item:hover {
+        background-color: #f8f9fa;
+    }
+    .notification-icon i {
+        width: 32px;
+        text-align: center;
+    }
+</style>
+{% endblock %}

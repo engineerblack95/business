@@ -1,0 +1,162 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Manage Products - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-boxes"></i> Manage Products</h2>
+    <div>
+        <a href="?status=pending_approval" class="btn btn-outline-warning">
+            <i class="fas fa-clock"></i> Pending Approval
+        </a>
+        <a href="?status=approved" class="btn btn-outline-success">
+            <i class="fas fa-check"></i> Approved
+        </a>
+        <a href="?status=" class="btn btn-outline-secondary">
+            <i class="fas fa-list"></i> All
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Supplier</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th>Sales</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if product.main_image %}
+                                <img src="{{ product.main_image.url }}" alt="{{ product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" class="me-2">
+                                {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-box text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ product.name|truncatechars:30 }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ product.brand|default:"No brand" }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="{% url 'suppliers:supplier_detail' product.owner.id %}">
+                                {{ product.owner.business_name|default:product.owner.email|truncatechars:20 }}
+                            </a>
+                        </td>
+                        <td>{{ product.category.name }}</td>
+                        <td>
+                            <strong>{{ product.final_price|floatformat:0 }} FRW</strong>
+                            <br>
+                            <small class="text-muted">Base: {{ product.base_price|floatformat:0 }} FRW</small>
+                        </td>
+                        <td>
+                            {% if product.exact_quantity == 0 %}
+                            <span class="badge bg-danger">Out of Stock</span>
+                            {% elif product.exact_quantity <= product.low_stock_threshold %}
+                            <span class="badge bg-warning">Low: {{ product.exact_quantity }}</span>
+                            {% else %}
+                            <span class="badge bg-success">{{ product.exact_quantity }} units</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if product.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                            {% elif product.status == 'pending_approval' %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% elif product.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ product.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ product.sales_count }} sold</span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'products:detail' product.slug %}" class="btn btn-info" target="_blank">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'products:admin_approve' product.id %}" class="btn btn-warning">
+                                    <i class="fas fa-check-double"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                            <p class="mb-0">No products found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if products.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if products.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ products.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for num in products.paginator.page_range %}
+                    {% if products.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if products.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ products.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Stock Update Script -->
+<script>
+function updateStock(productId, quantity) {
+    fetch("{% url 'dashboard:quick_stock_update' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `product_id=${productId}&exact_quantity=${quantity}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

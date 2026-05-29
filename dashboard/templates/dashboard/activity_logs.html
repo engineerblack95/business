@@ -1,0 +1,114 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Activity Logs - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-history"></i> Activity Logs</h2>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <!-- Filters -->
+        <form method="get" class="row mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Activity Type</label>
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="login" {% if selected_type == 'login' %}selected{% endif %}>Login</option>
+                    <option value="logout" {% if selected_type == 'logout' %}selected{% endif %}>Logout</option>
+                    <option value="create" {% if selected_type == 'create' %}selected{% endif %}>Create</option>
+                    <option value="update" {% if selected_type == 'update' %}selected{% endif %}>Update</option>
+                    <option value="delete" {% if selected_type == 'delete' %}selected{% endif %}>Delete</option>
+                    <option value="purchase" {% if selected_type == 'purchase' %}selected{% endif %}>Purchase</option>
+                    <option value="payment" {% if selected_type == 'payment' %}selected{% endif %}>Payment</option>
+                    <option value="approval" {% if selected_type == 'approval' %}selected{% endif %}>Approval</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">User</label>
+                <select name="user" class="form-select">
+                    <option value="">All Users</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if selected_user == user.id|stringformat:"s" %}selected{% endif %}>
+                        {{ user.email }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
+            </div>
+        </form>
+        
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Activity Type</th>
+                        <th>Description</th>
+                        <th>IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td style="white-space: nowrap;">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            <a href="{% url 'admin:accounts_user_change' log.user.id %}">
+                                {{ log.user.email }}
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ log.get_activity_type_display }}</span>
+                        </td>
+                        <td>{{ log.description|truncatechars:100 }}</td>
+                        <td><code>{{ log.ip_address|default:"-" }}</code></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                            <p class="mb-0">No activity logs found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if logs.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if logs.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ logs.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for num in logs.paginator.page_range %}
+                    {% if logs.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > logs.number|add:'-3' and num < logs.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if logs.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ logs.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

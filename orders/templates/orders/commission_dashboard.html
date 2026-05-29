@@ -1,0 +1,199 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Commission Dashboard - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-coins"></i> Commission Dashboard</h2>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+        <i class="fas fa-money-bill-wave"></i> Request Withdrawal
+    </button>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Total Commission Earned</small>
+                    <h3 class="mb-0">{{ summary.total_earned|floatformat:0 }} FRW</h3>
+                </div>
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Available for Withdrawal</small>
+                    <h3 class="mb-0 text-success">{{ summary.available|floatformat:0 }} FRW</h3>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-wallet"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Already Withdrawn</small>
+                    <h3 class="mb-0">{{ summary.withdrawn|floatformat:0 }} FRW</h3>
+                </div>
+                <div class="stats-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-history"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Pending Requests</small>
+                    <h3 class="mb-0">{{ summary.pending_requests|floatformat:0 }} FRW</h3>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Commissions -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Recent Commissions</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Order</th>
+                        <th>Product</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for commission in recent_commissions %}
+                    <tr>
+                        <td>{{ commission.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>{{ commission.order_item.order.order_number }}</td>
+                        <td>{{ commission.order_item.product.name|truncatechars:30 }}</td>
+                        <td><strong>{{ commission.amount|floatformat:0 }} FRW</strong></td>
+                        <td>
+                            {% if commission.status == 'withdrawn' %}
+                            <span class="badge bg-success">Withdrawn</span>
+                            {% else %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No commissions yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Withdrawal Requests -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-clock"></i> Withdrawal Requests</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Request Code</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in withdrawal_requests %}
+                    <tr>
+                        <td>{{ request.request_code }}</td>
+                        <td><strong>{{ request.amount|floatformat:0 }} FRW</strong></td>
+                        <td>{{ request.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            {% if request.status == 'pending' %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% elif request.status == 'approved' %}
+                            <span class="badge bg-info">Approved</span>
+                            {% elif request.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif request.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No withdrawal requests</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Withdrawal Modal -->
+<div class="modal fade" id="withdrawModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="withdraw" value="1">
+                <div class="modal-header">
+                    <h5 class="modal-title">Request Commission Withdrawal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        Available Commission: <strong>{{ summary.available|floatformat:0 }} FRW</strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Amount to Withdraw</label>
+                        {{ form.amount }}
+                        <small class="text-muted">Minimum: 1,000 FRW</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        {{ form.payment_method }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Mobile Money Number</label>
+                        {{ form.mobile_money_number }}
+                        <small class="text-muted">Enter the number registered with mobile money</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

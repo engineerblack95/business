@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Login Verification - HerosTechnology</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: #2C3E50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .otp-code {
+            font-size: 32px;
+            font-weight: bold;
+            color: #E67E22;
+            text-align: center;
+            padding: 20px;
+            background: #f4f4f4;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>HerosTechnology</h1>
+            <p>Login Verification Code</p>
+        </div>
+        
+        <p>Hello {{ user.full_name|default:user.email }},</p>
+        
+        <p>You requested to log in to your HerosTechnology account. Use the code below:</p>
+        
+        <div class="otp-code">
+            {{ otp_code }}
+        </div>
+        
+        <p>This code expires in {{ expiry_minutes }} minutes.</p>
+        
+        <p>If you didn't request this, please ignore this email.</p>
+        
+        <div class="footer">
+            <p>&copy; 2024 HerosTechnology. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

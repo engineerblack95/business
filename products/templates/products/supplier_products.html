@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Products - Supplier Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-box"></i> My Products</h2>
+        <a href="{% url 'products:supplier_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Product
+        </a>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Products</h5>
+                    <h2 class="mb-0">{{ total_products }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Approval</h5>
+                    <h2 class="mb-0">{{ pending_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Approved</h5>
+                    <h2 class="mb-0">{{ approved_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Out of Stock</h5>
+                    <h2 class="mb-0">{{ out_of_stock_count }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Products Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Base Price</th>
+                            <th>Final Price</th>
+                            <th>Exact Stock</th>
+                            <th>Status</th>
+                            <th>Sales</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>
+                                <strong>{{ product.name|truncatechars:30 }}</strong>
+                                <br>
+                                <small class="text-muted">{{ product.brand|default:"No brand" }}</small>
+                            </td>
+                            <td>{{ product.category.name }}</td>
+                            <td>{{ product.base_price|floatformat:0 }} FRW</td>
+                            <td>{{ product.final_price|floatformat:0 }} FRW</td>
+                            <td>
+                                <!-- CRITICAL: Supplier sees exact stock quantity -->
+                                <span class="badge {% if product.exact_quantity == 0 %}bg-danger{% elif product.exact_quantity <= product.low_stock_threshold %}bg-warning{% else %}bg-success{% endif %}">
+                                    {{ product.exact_quantity }} units
+                                </span>
+                            </td>
+                            <td>
+                                {% if product.status == 'approved' %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% elif product.status == 'pending_approval' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif product.status == 'rejected' %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ product.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ product.sales_count }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'products:detail' product.slug %}" class="btn btn-info" target="_blank">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'products:supplier_update' product.id %}" class="btn btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'products:supplier_stock_update' product.id %}" class="btn btn-primary">
+                                        <i class="fas fa-boxes"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                                <p>You haven't added any products yet.</p>
+                                <a href="{% url 'products:supplier_create' %}" class="btn btn-primary">Add Your First Product</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

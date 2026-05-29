@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login History - HerosTechnology{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'accounts:profile' %}">My Profile</a></li>
+                    <li class="breadcrumb-item active">Login History</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-history"></i> Login History
+                    </h4>
+                    <small class="text-muted">Track all your login sessions and device information</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Device</th>
+                                    <th>Operating System</th>
+                                    <th>Browser</th>
+                                    <th>Location</th>
+                                    <th>IP Address</th>
+                                    <th>Session Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for history in login_history %}
+                                <td>
+                                    <td>
+                                        <strong>{{ history.login_time|date:"Y-m-d H:i:s" }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ history.login_time|date:"l" }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-{% if history.device_type == 'smartphone' %}mobile-alt{% elif history.device_type == 'tablet' %}tablet-alt{% else %}laptop{% endif %} fa-lg me-2 text-primary"></i>
+                                            <span>{{ history.get_device_type_display }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <i class="fab fa-{% if 'windows' in history.os_type %}windows{% elif 'linux' in history.os_type %}linux{% elif 'apple' in history.os_type %}apple{% else %}chrome{% endif %}"></i>
+                                        {{ history.get_os_type_display }}
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <i class="fab fa-{% if 'Chrome' in history.browser %}chrome{% elif 'Firefox' in history.browser %}firefox{% elif 'Safari' in history.browser %}safari{% else %}edge{% endif %}"></i>
+                                            {{ history.browser }} {{ history.browser_version }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <i class="fas fa-map-marker-alt text-danger"></i>
+                                            {% if history.location_country %}
+                                                {{ history.location_city|default:"" }}
+                                                {% if history.location_city and history.location_country %}, {% endif %}
+                                                {{ history.location_country }}
+                                            {% else %}
+                                                Unknown
+                                            {% endif %}
+                                            {% if history.location_latitude %}
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-crosshairs"></i> 
+                                                    {{ history.location_latitude|floatformat:4 }}, {{ history.location_longitude|floatformat:4 }}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <code>{{ history.ip_address }}</code>
+                                    </td>
+                                    <td>
+                                        {% if history.logout_time %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-clock"></i> 
+                                                {{ history.get_duration|default:"N/A" }} min
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">Logged out: {{ history.logout_time|date:"H:i:s" }}</small>
+                                        {% else %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-circle"></i> Active
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                                        <p class="mb-0">No login history found.</p>
+                                        <small class="text-muted">Your login activities will appear here</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if login_history.has_other_pages %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if login_history.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ login_history.previous_page_number }}">
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in login_history.paginator.page_range %}
+                                {% if login_history.number == num %}
+                                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                {% elif num > login_history.number|add:'-3' and num < login_history.number|add:'3' %}
+                                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if login_history.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ login_history.next_page_number }}">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Security Tips -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5><i class="fas fa-shield-alt"></i> Security Tips</h5>
+                <ul class="mb-0">
+                    <li>If you see any suspicious login activity, change your password immediately.</li>
+                    <li>Always log out from shared or public computers.</li>
+                    <li>Enable two-factor authentication for added security.</li>
+                    <li>Contact support if you notice unrecognized devices or locations.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table td {
+        vertical-align: middle;
+    }
+    code {
+        background-color: #f8f9fa;
+        padding: 2px 5px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+</style>
+{% endblock %}
