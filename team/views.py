@@ -15,10 +15,13 @@ from dashboard.utils.notifications import NotificationManager
 def about_view(request):
     """Public about page showing team members"""
     
+    # Get all active team members, ordered by display_order
     team_members = TeamMember.objects.filter(is_active=True).order_by('display_order')
     
-    # Get leadership team (featured)
+    # Get leadership team (featured members)
     leadership = team_members.filter(featured=True)
+    
+    # Get other team members (non-featured)
     other_members = team_members.filter(featured=False)
     
     context = {
@@ -26,7 +29,8 @@ def about_view(request):
         'team_members': other_members,
         'total_members': team_members.count(),
     }
-    return render(request, 'team/about.html', context)
+    # Render the about.html template from the templates folder
+    return render(request, 'about.html', context)
 
 
 @login_required

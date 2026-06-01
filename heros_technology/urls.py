@@ -13,6 +13,7 @@ urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('suppliers/', include('suppliers.urls')),
     path('team/', include('team.urls')),
+     path('about/', about_view, name='about'),
     path('analytics/', include('analytics.urls')),
     path('notifications/', include('notifications.urls')),
     path('', TemplateView.as_view(template_name='home.html'), name='home'),

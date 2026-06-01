@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.urls import reverse
 from .models import TeamMember, TeamTask, TeamActivity
+
 
 @admin.register(TeamMember)
 class TeamMemberAdmin(admin.ModelAdmin):
@@ -43,7 +45,8 @@ class TeamMemberAdmin(admin.ModelAdmin):
     def profile_preview(self, obj):
         if obj.profile_image:
             return format_html('<img src="{}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" />', obj.profile_image.url)
-        return format_html('<div style="width: 50px; height: 50px; border-radius: 50%; background-color: #6c757d; display: flex; align-items: center; justify-content: center;"><span style="color: white;">📷</span></div>')
+        # FIXED: Removed format_html since there are no placeholders
+        return '<div style="width: 50px; height: 50px; border-radius: 50%; background-color: #6c757d; display: flex; align-items: center; justify-content: center;"><span style="color: white;">📷</span></div>'
     profile_preview.short_description = 'Photo'
 
 
@@ -77,7 +80,10 @@ class TeamTaskAdmin(admin.ModelAdmin):
     )
     
     def assigned_to_display(self, obj):
-        return format_html('<a href="/admin/accounts/user/{}/change/">{}</a>', obj.assigned_to.id, obj.assigned_to.email)
+        if obj.assigned_to:
+            url = reverse('admin:accounts_user_change', args=[obj.assigned_to.id])
+            return format_html('<a href="{}">{}</a>', url, obj.assigned_to.email)
+        return '<span style="color: #6c757d;">Unassigned</span>'
     assigned_to_display.short_description = 'Assigned To'
     
     def priority_badge(self, obj):
@@ -106,6 +112,10 @@ class TeamTaskAdmin(admin.ModelAdmin):
     
     def due_date_badge(self, obj):
         from django.utils import timezone
+        
+        if not obj.due_date:
+            return '<span style="background-color: #6c757d; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px;">No due date</span>'
+        
         if obj.status == 'completed':
             color = '#28a745'
         elif obj.due_date < timezone.now():
@@ -114,6 +124,7 @@ class TeamTaskAdmin(admin.ModelAdmin):
             color = '#ffc107'
         else:
             color = '#6c757d'
+        
         return format_html(
             '<span style="background-color: {}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px;">{}</span>',
             color,
@@ -124,12 +135,21 @@ class TeamTaskAdmin(admin.ModelAdmin):
 
 @admin.register(TeamActivity)
 class TeamActivityAdmin(admin.ModelAdmin):
-    list_display = ['team_member', 'activity_type', 'description_preview', 'created_at']
+    list_display = ['team_member_display', 'activity_type', 'description_preview', 'created_at']
     list_filter = ['activity_type', 'created_at']
     search_fields = ['team_member__email', 'description']
     readonly_fields = ['created_at']
     date_hierarchy = 'created_at'
     
+    def team_member_display(self, obj):
+        if obj.team_member:
+            url = reverse('admin:accounts_user_change', args=[obj.team_member.id])
+            return format_html('<a href="{}">{}</a>', url, obj.team_member.email)
+        return '<span style="color: #6c757d;">Unknown</span>'
+    team_member_display.short_description = 'Team Member'
+    
     def description_preview(self, obj):
-        return obj.description[:100] + ('...' if len(obj.description) > 100 else '')
+        if len(obj.description) > 100:
+            return obj.description[:100] + '...'
+        return obj.description
     description_preview.short_description = 'Description'
