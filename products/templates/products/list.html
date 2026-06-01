@@ -3,115 +3,383 @@
 
 {% block title %}Products - HerosTechnology{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Filter Sidebar Styling */
+    .filter-sidebar {
+        position: sticky;
+        top: 90px;
+    }
+    
+    .filter-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+    
+    .filter-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+        color: white;
+        padding: 15px 20px;
+        border-bottom: none;
+    }
+    
+    .filter-section {
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .filter-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    .filter-label {
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 8px;
+        color: #2C3E50;
+    }
+    
+    .price-input-group {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .price-input-group .input-group {
+        flex: 1;
+    }
+    
+    .price-input-group .input-group-text {
+        background: #f8f9fa;
+        border-right: none;
+    }
+    
+    .price-input-group input {
+        border-left: none;
+    }
+    
+    /* Product Card Styling */
+    .product-card {
+        border: none;
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    
+    .product-image {
+        height: 220px;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    
+    .product-card:hover .product-image {
+        transform: scale(1.05);
+    }
+    
+    .image-wrapper {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stock-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 1;
+    }
+    
+    .product-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        line-height: 1.4;
+        height: 2.8em;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    
+    .product-description {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 12px;
+        height: 2.8em;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    
+    .price {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--secondary-color);
+    }
+    
+    .old-price {
+        font-size: 0.85rem;
+        color: #adb5bd;
+        text-decoration: line-through;
+        margin-left: 8px;
+    }
+    
+    .rating-stars {
+        font-size: 0.85rem;
+        color: #ffc107;
+    }
+    
+    .rating-count {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-left: 5px;
+    }
+    
+    /* Search Input */
+    .search-input {
+        border-radius: 50px;
+        padding: 10px 20px;
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 3px rgba(230,126,34,0.1);
+    }
+    
+    /* Apply Filter Button */
+    .btn-apply-filter {
+        background: linear-gradient(135deg, var(--secondary-color) 0%, #D35400 100%);
+        border: none;
+        border-radius: 50px;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-apply-filter:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(230,126,34,0.3);
+    }
+    
+    /* Clear Filters Link */
+    .clear-filters {
+        font-size: 0.85rem;
+        color: var(--secondary-color);
+        text-decoration: none;
+    }
+    
+    .clear-filters:hover {
+        text-decoration: underline;
+    }
+    
+    /* Sort Dropdown */
+    .sort-dropdown {
+        border-radius: 50px;
+        border: 1px solid #e9ecef;
+        padding: 8px 16px;
+        background: white;
+    }
+    
+    /* Pagination */
+    .pagination .page-link {
+        border-radius: 50px;
+        margin: 0 4px;
+        color: var(--primary-color);
+        border: none;
+        padding: 8px 16px;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, var(--secondary-color) 0%, #D35400 100%);
+        color: white;
+    }
+    
+    .pagination .page-link:hover {
+        background-color: #f8f9fa;
+        color: var(--secondary-color);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .product-image {
+            height: 180px;
+        }
+        .price {
+            font-size: 1.1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <!-- Sidebar Filters -->
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="fas fa-filter"></i> Filters
-                    </h5>
-                    
-                    <form method="get">
-                        <!-- Search -->
-                        <div class="mb-3">
-                            <label class="form-label">Search</label>
-                            {{ filter.form.query }}
-                        </div>
-                        
-                        <!-- Category -->
-                        <div class="mb-3">
-                            <label class="form-label">Category</label>
-                            {{ filter.form.category }}
-                        </div>
-                        
-                        <!-- Price Range -->
-                        <div class="mb-3">
-                            <label class="form-label">Price Range (FRW)</label>
-                            <div class="row g-2">
-                                <div class="col">
-                                    {{ filter.form.min_price }}
-                                </div>
-                                <div class="col">
-                                    {{ filter.form.max_price }}
+        <div class="col-lg-3 mb-4">
+            <div class="filter-sidebar">
+                <div class="card filter-card">
+                    <div class="filter-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-sliders-h me-2"></i> Filters
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <form method="get" id="filterForm">
+                            <!-- Search -->
+                            <div class="filter-section">
+                                <label class="filter-label">
+                                    <i class="fas fa-search me-1"></i> Search Products
+                                </label>
+                                {{ filter.form.query }}
+                                {% if filter.form.query.errors %}
+                                    <div class="text-danger small mt-1">{{ filter.form.query.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Category -->
+                            <div class="filter-section">
+                                <label class="filter-label">
+                                    <i class="fas fa-tag me-1"></i> Category
+                                </label>
+                                {{ filter.form.category }}
+                                {% if filter.form.category.errors %}
+                                    <div class="text-danger small mt-1">{{ filter.form.category.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Price Range -->
+                            <div class="filter-section">
+                                <label class="filter-label">
+                                    <i class="fas fa-dollar-sign me-1"></i> Price Range (FRW)
+                                </label>
+                                <div class="price-input-group">
+                                    <div class="input-group">
+                                        <span class="input-group-text">Min</span>
+                                        {{ filter.form.min_price }}
+                                    </div>
+                                    <div class="input-group">
+                                        <span class="input-group-text">Max</span>
+                                        {{ filter.form.max_price }}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- In Stock Only -->
-                        <div class="mb-3 form-check">
-                            {{ filter.form.in_stock_only }}
-                            <label class="form-check-label">In Stock Only</label>
-                        </div>
-                        
-                        <!-- Sort By -->
-                        <div class="mb-3">
-                            <label class="form-label">Sort By</label>
-                            <select name="sort_by" class="form-select">
-                                <option value="newest">Newest First</option>
-                                <option value="price_low">Price: Low to High</option>
-                                <option value="price_high">Price: High to Low</option>
-                                <option value="popular">Most Popular</option>
-                                <option value="rating">Highest Rated</option>
-                            </select>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search"></i> Apply Filters
-                        </button>
-                    </form>
+                            
+                            <!-- In Stock Only -->
+                            <div class="filter-section">
+                                <div class="form-check form-switch">
+                                    {{ filter.form.in_stock_only }}
+                                    <label class="form-check-label" for="id_in_stock_only">
+                                        <i class="fas fa-boxes me-1"></i> Show only in-stock products
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Sort By -->
+                            <div class="filter-section">
+                                <label class="filter-label">
+                                    <i class="fas fa-sort-amount-down me-1"></i> Sort By
+                                </label>
+                                <select name="sort_by" class="form-select sort-dropdown">
+                                    <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>🆕 Newest First</option>
+                                    <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>💰 Price: Low to High</option>
+                                    <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>💰 Price: High to Low</option>
+                                    <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>🔥 Most Popular</option>
+                                    <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>⭐ Highest Rated</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Buttons -->
+                            <div class="d-grid gap-2 mt-3">
+                                <button type="submit" class="btn btn-apply-filter">
+                                    <i class="fas fa-search me-2"></i> Apply Filters
+                                </button>
+                                <a href="{% url 'products:list' %}" class="text-center clear-filters">
+                                    <i class="fas fa-times-circle me-1"></i> Clear all filters
+                                </a>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- Products Grid -->
-        <div class="col-md-9">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4>{{ total_count }} Products Found</h4>
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        Sort: {{ sort_by|title }}
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="?sort_by=newest">Newest First</a></li>
-                        <li><a class="dropdown-item" href="?sort_by=price_low">Price: Low to High</a></li>
-                        <li><a class="dropdown-item" href="?sort_by=price_high">Price: High to Low</a></li>
-                        <li><a class="dropdown-item" href="?sort_by=popular">Most Popular</a></li>
-                        <li><a class="dropdown-item" href="?sort_by=rating">Highest Rated</a></li>
-                    </ul>
+        <div class="col-lg-9">
+            <!-- Results Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="mb-0">
+                        <i class="fas fa-box-open me-2 text-primary"></i>
+                        {{ total_count }} Product{{ total_count|pluralize }}
+                    </h4>
+                    <small class="text-muted">
+                        {% if filter.form.query.value %}
+                            Searching for: "{{ filter.form.query.value }}"
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="mt-2 mt-sm-0">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle sort-dropdown" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-sort me-1"></i> Sort: {{ sort_by|title }}
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-sort="newest">🆕 Newest First</a></li>
+                            <li><a class="dropdown-item" href="#" data-sort="price_low">💰 Price: Low to High</a></li>
+                            <li><a class="dropdown-item" href="#" data-sort="price_high">💰 Price: High to Low</a></li>
+                            <li><a class="dropdown-item" href="#" data-sort="popular">🔥 Most Popular</a></li>
+                            <li><a class="dropdown-item" href="#" data-sort="rating">⭐ Highest Rated</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             
+            <!-- Products Grid -->
             <div class="row">
                 {% for product in products %}
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100">
-                        {% if product.main_image %}
-                        <img src="{{ product.main_image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
-                        {% else %}
-                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                            <i class="fas fa-image fa-3x text-muted"></i>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="card-body">
-                            <h5 class="card-title">{{ product.name|truncatechars:40 }}</h5>
-                            <p class="card-text text-muted small">{{ product.short_description|truncatechars:60 }}</p>
-                            
-                            <div class="mb-2">
-                                <span class="badge bg-{{ product.get_stock_badge_class }}">
-                                    {{ product.get_stock_label }}
+                <div class="col-md-6 col-xl-4 mb-4">
+                    <div class="card product-card h-100">
+                        <div class="image-wrapper position-relative">
+                            {% if product.main_image %}
+                            <img src="{{ product.main_image.url }}" class="card-img-top product-image" alt="{{ product.name }}" loading="lazy">
+                            {% else %}
+                            <div class="card-img-top product-image bg-light d-flex align-items-center justify-content-center">
+                                <i class="fas fa-image fa-4x text-muted"></i>
+                            </div>
+                            {% endif %}
+                            <div class="stock-badge">
+                                <span class="badge bg-{{ product.get_stock_badge_class }} px-3 py-2 rounded-pill">
+                                    {% if product.is_in_stock %}
+                                        <i class="fas fa-check-circle me-1"></i> In Stock
+                                    {% else %}
+                                        <i class="fas fa-times-circle me-1"></i> Out of Stock
+                                    {% endif %}
                                 </span>
                             </div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <h5 class="product-title">{{ product.name|truncatechars:45 }}</h5>
+                            <p class="product-description">{{ product.short_description|truncatechars:70 }}</p>
                             
-                            <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
-                                    <span class="h5 mb-0">{{ product.final_price|floatformat:0 }} FRW</span>
-                                    <small class="text-muted">incl. VAT</small>
+                                    <span class="price">{{ product.final_price|floatformat:0 }} FRW</span>
+                                    <small class="text-muted ms-1">incl. VAT</small>
                                 </div>
-                                <div class="text-warning">
+                                <div class="rating-stars">
                                     {% with rating=product.rating|floatformat:"0" %}
                                         {% for i in "12345"|make_list %}
                                             {% if forloop.counter <= rating %}
@@ -121,24 +389,27 @@
                                             {% endif %}
                                         {% endfor %}
                                     {% endwith %}
-                                    <small class="text-muted">({{ product.rating_count }})</small>
+                                    <span class="rating-count">({{ product.rating_count }})</span>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="card-footer bg-transparent">
-                            <a href="{% url 'products:detail' product.slug %}" class="btn btn-primary w-100">
-                                <i class="fas fa-eye"></i> View Details
-                            </a>
+                        <div class="card-footer bg-transparent border-0 pb-3">
+                            <div class="d-grid">
+                                <a href="{% url 'products:detail' product.slug %}" class="btn btn-outline-primary rounded-pill">
+                                    <i class="fas fa-eye me-2"></i> View Details
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
                 {% empty %}
                 <div class="col-12">
-                    <div class="alert alert-info text-center">
-                        <i class="fas fa-search fa-2x mb-3"></i>
+                    <div class="alert alert-info text-center py-5">
+                        <i class="fas fa-search fa-3x mb-3"></i>
                         <h5>No products found</h5>
-                        <p>Try adjusting your search or filter criteria</p>
+                        <p class="mb-0">Try adjusting your search or filter criteria</p>
+                        <a href="{% url 'products:list' %}" class="btn btn-primary mt-3">Clear Filters</a>
                     </div>
                 </div>
                 {% endfor %}
@@ -147,10 +418,16 @@
             <!-- Pagination -->
             {% if products.has_other_pages %}
             <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
+                <ul class="pagination justify-content-center flex-wrap">
                     {% if products.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ products.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
+                        <a class="page-link" href="?page={{ products.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
                     </li>
                     {% endif %}
                     
@@ -158,13 +435,19 @@
                         {% if products.number == num %}
                         <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                         {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
-                        <li class="page-item"><a class="page-link" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
                         {% endif %}
                     {% endfor %}
                     
                     {% if products.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ products.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+                        <a class="page-link" href="?page={{ products.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
                     </li>
                     {% endif %}
                 </ul>
@@ -173,4 +456,17 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Handle sort dropdown clicks
+    document.querySelectorAll('.dropdown-item[data-sort]').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const sortValue = this.dataset.sort;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('sort_by', sortValue);
+            window.location.href = currentUrl.toString();
+        });
+    });
+</script>
 {% endblock %}

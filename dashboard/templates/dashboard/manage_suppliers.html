@@ -11,7 +11,7 @@
             <i class="fas fa-clock"></i> Pending Applications
         </a>
         <a href="?pending=false" class="btn btn-outline-primary {% if not show_pending %}active{% endif %}">
-            <i class="fas fa-check-circle"></i> All Suppliers
+            <i class="fas fa-check-circle"></i> Approved Suppliers
         </a>
     </div>
 </div>
@@ -22,13 +22,13 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>Supplier</th>
+                        <th>Applicant/Supplier</th>
                         <th>Business Name</th>
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Status</th>
                         <th>Products</th>
-                        <th>Joined</th>
+                        <th>Submitted/Joined</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -37,21 +37,27 @@
                     <tr>
                         <td>
                             <div class="d-flex align-items-center">
-                                {% if supplier.supplier_profile.logo %}
-                                <img src="{{ supplier.supplier_profile.logo.url }}" alt="{{ supplier.business_name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;" class="me-2">
-                                {% else %}
                                 <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
                                     <i class="fas fa-store text-white"></i>
                                 </div>
-                                {% endif %}
                                 <div>
                                     <strong>{{ supplier.full_name|default:supplier.email|truncatechars:20 }}</strong>
                                 </div>
                             </div>
                         </td>
-                        <td>{{ supplier.business_name|default:"-" }}</td>
+                        <td>
+                            {% if show_pending %}
+                                {% if supplier.supplier_application %}
+                                    {{ supplier.supplier_application.business_name }}
+                                {% else %}
+                                    {{ supplier.business_name|default:"-" }}
+                                {% endif %}
+                            {% else %}
+                                {{ supplier.business_name|default:"-" }}
+                            {% endif %}
+                        </td>
                         <td>{{ supplier.email }}</td>
-                        <td>{{ supplier.phone }}</td>
+                        <td>{{ supplier.phone|default:"-" }}</td>
                         <td>
                             {% if supplier.is_approved_supplier %}
                             <span class="badge bg-success">
@@ -68,24 +74,34 @@
                                 {{ supplier.products.count }} products
                             </span>
                         </td>
-                        <td>{{ supplier.date_joined|date:"Y-m-d" }}</td>
+                        <td>
+                            {% if show_pending %}
+                                {{ supplier.supplier_application.created_at|date:"Y-m-d"|default:supplier.date_joined|date:"Y-m-d" }}
+                            {% else %}
+                                {{ supplier.date_joined|date:"Y-m-d" }}
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="{% url 'suppliers:supplier_detail' supplier.id %}" class="btn btn-info">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                {% if not supplier.is_approved_supplier %}
-                                <a href="{% url 'dashboard:approve_supplier' supplier.id %}" class="btn btn-success" onclick="return confirm('Approve this supplier?')">
-                                    <i class="fas fa-check"></i>
-                                </a>
-                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ supplier.id }}">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                                {% if show_pending %}
+                                    <a href="{% url 'suppliers:review_application_detail' supplier.supplier_application.id %}" class="btn btn-info">
+                                        <i class="fas fa-eye"></i> Review
+                                    </a>
+                                    <a href="{% url 'dashboard:approve_supplier' supplier.id %}" class="btn btn-success" onclick="return confirm('Approve this supplier?')">
+                                        <i class="fas fa-check"></i> Approve
+                                    </a>
+                                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ supplier.id }}">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                {% else %}
+                                    <a href="{% url 'suppliers:supplier_detail' supplier.id %}" class="btn btn-info">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
                                 {% endif %}
                             </div>
                             
                             <!-- Reject Modal -->
-                            {% if not supplier.is_approved_supplier %}
+                            {% if show_pending %}
                             <div class="modal fade" id="rejectModal{{ supplier.id }}" tabindex="-1">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
@@ -116,41 +132,76 @@
                     {% empty %}
                     <tr>
                         <td colspan="8" class="text-center py-5">
-                            <i class="fas fa-store-slash fa-3x text-muted mb-3"></i>
-                            <p class="mb-0">No suppliers found.</p>
+                            {% if show_pending %}
+                                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                <h5>No Pending Applications</h5>
+                                <p class="text-muted">All supplier applications have been reviewed.</p>
+                            {% else %}
+                                <i class="fas fa-store-slash fa-3x text-muted mb-3"></i>
+                                <h5>No Suppliers Found</h5>
+                                <p class="text-muted">No suppliers have been approved yet.</p>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        
-        <!-- Pagination -->
-        {% if suppliers.has_other_pages %}
-        <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if suppliers.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ suppliers.previous_page_number }}{% if show_pending %}&pending=true{% endif %}">Previous</a>
-                </li>
-                {% endif %}
-                
-                {% for num in suppliers.paginator.page_range %}
-                    {% if suppliers.number == num %}
-                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% elif num > suppliers.number|add:'-3' and num < suppliers.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if show_pending %}&pending=true{% endif %}">{{ num }}</a></li>
-                    {% endif %}
-                {% endfor %}
-                
-                {% if suppliers.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ suppliers.next_page_number }}{% if show_pending %}&pending=true{% endif %}">Next</a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
     </div>
 </div>
+
+<!-- Pagination -->
+{% if suppliers.has_other_pages %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if suppliers.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ suppliers.previous_page_number }}{% if show_pending %}&pending=true{% endif %}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">&laquo;</span>
+        </li>
+        {% endif %}
+        
+        {% for num in suppliers.paginator.page_range %}
+            {% if suppliers.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > suppliers.number|add:'-3' and num < suppliers.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if show_pending %}&pending=true{% endif %}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if suppliers.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ suppliers.next_page_number }}{% if show_pending %}&pending=true{% endif %}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">&raquo;</span>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Footer -->
+<footer class="mt-5 pt-3 border-top">
+    <div class="row">
+        <div class="col-md-6">
+            <p class="text-muted small mb-0">
+                <i class="fas fa-store"></i> HerosTechnology Supplier Management
+            </p>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <p class="text-muted small mb-0">
+                &copy; {% now "Y" %} HerosTechnology. All rights reserved.
+            </p>
+        </div>
+    </div>
+</footer>
 {% endblock %}

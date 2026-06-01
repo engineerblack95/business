@@ -26,6 +26,17 @@ from .utils.receipt_generator import ReceiptGenerator
 
 
 @login_required
+def cart_count_view(request):
+    """API endpoint to get cart item count for navbar badge"""
+    try:
+        cart, created = Cart.objects.get_or_create(customer=request.user)
+        total_items = cart.get_total_items()
+        return JsonResponse({'count': total_items})
+    except Exception as e:
+        return JsonResponse({'count': 0, 'error': str(e)})
+
+
+@login_required
 @role_required(['customer'])
 def cart_view(request):
     """View shopping cart"""
@@ -235,20 +246,50 @@ def order_confirmation_view(request, order_id):
 
 @login_required
 def order_detail_view(request, order_id):
-    """View order details"""
-    order = get_object_or_404(Order, id=order_id, customer=request.user)
+    """View order details - accessible by customer, supplier (if product included), and admin"""
+    
+    try:
+        order = get_object_or_404(Order, id=order_id)
+    except (ValueError, TypeError):
+        messages.error(request, 'Invalid order ID format.')
+        return redirect('orders:order_list')
+    
+    # Check permissions
+    is_customer = order.customer == request.user
+    is_admin = request.user.role == 'admin'
+    is_supplier = request.user.role == 'supplier' and order.items.filter(
+        product__owner=request.user, 
+        is_supplier_product=True
+    ).exists()
+    
+    if not (is_customer or is_admin or is_supplier):
+        messages.error(request, 'You do not have permission to view this order.')
+        return redirect('orders:order_list')
     
     context = {
         'order': order,
         'items': order.items.all(),
+        'is_supplier_view': is_supplier,
     }
     return render(request, 'orders/order_detail.html', context)
 
 
 @login_required
 def order_list_view(request):
-    """List user's orders"""
-    orders = Order.objects.filter(customer=request.user).order_by('-created_at')
+    """List user's orders - shows different orders based on role"""
+    
+    if request.user.role == 'admin':
+        # Admin sees all orders
+        orders = Order.objects.all().order_by('-created_at')
+    elif request.user.role == 'supplier':
+        # Supplier sees orders containing their products
+        orders = Order.objects.filter(
+            items__product__owner=request.user,
+            items__is_supplier_product=True
+        ).distinct().order_by('-created_at')
+    else:
+        # Customer sees only their orders
+        orders = Order.objects.filter(customer=request.user).order_by('-created_at')
     
     # Apply filters
     status = request.GET.get('status')
@@ -333,7 +374,7 @@ def update_order_status_view(request, order_id):
             order.save()
             messages.success(request, f'Order status updated to {order.get_order_status_display()}')
             
-            # Notify customer about status change (optional)
+            # Notify customer about status change
             NotificationService.create_notification(
                 user=order.customer,
                 title=f"Order Status Update - {order.order_number}",
@@ -350,13 +391,37 @@ def update_order_status_view(request, order_id):
 @role_required(['supplier'])
 def supplier_orders_view(request):
     """Supplier view orders containing their products"""
+    from django.db.models import Sum
+    
     orders = Order.objects.filter(
         items__product__owner=request.user,
         items__is_supplier_product=True
     ).distinct().order_by('-created_at')
     
+    # Calculate statistics
+    total_revenue = 0
+    pending_count = 0
+    completed_count = 0
+    
+    for order in orders:
+        for item in order.items.filter(product__owner=request.user, is_supplier_product=True):
+            total_revenue += item.get_total_final_price()
+        
+        if order.order_status == 'pending':
+            pending_count += 1
+        elif order.order_status == 'delivered':
+            completed_count += 1
+    
+    # Pagination
+    paginator = Paginator(orders, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'orders': orders,
+        'orders': page_obj,
+        'total_revenue': total_revenue,
+        'pending_count': pending_count,
+        'completed_count': completed_count,
     }
     return render(request, 'orders/supplier_orders.html', context)
 

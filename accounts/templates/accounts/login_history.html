@@ -19,88 +19,102 @@
     
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">
-                        <i class="fas fa-history"></i> Login History
-                    </h4>
-                    <small class="text-muted">Track all your login sessions and device information</small>
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">
+                                <i class="fas fa-history text-primary"></i> Login History
+                            </h4>
+                            <small class="text-muted">Track all your login sessions and device information</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary">
+                                <i class="fas fa-clock"></i> Total: {{ login_history.paginator.count }} sessions
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>Date & Time</th>
-                                    <th>Device</th>
-                                    <th>Operating System</th>
-                                    <th>Browser</th>
-                                    <th>Location</th>
-                                    <th>IP Address</th>
-                                    <th>Session Duration</th>
+                                    <th><i class="fas fa-calendar-alt"></i> Date & Time</th>
+                                    <th><i class="fas fa-mobile-alt"></i> Device</th>
+                                    <th><i class="fab fa-windows"></i> Operating System</th>
+                                    <th><i class="fas fa-globe"></i> Browser</th>
+                                    <th><i class="fas fa-map-marker-alt"></i> Location</th>
+                                    <th><i class="fas fa-network-wired"></i> IP Address</th>
+                                    <th><i class="fas fa-hourglass-half"></i> Session Duration</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for history in login_history %}
-                                <td>
+                                <tr>
                                     <td>
-                                        <strong>{{ history.login_time|date:"Y-m-d H:i:s" }}</strong>
-                                        <br>
+                                        <div class="fw-bold">{{ history.login_time|date:"Y-m-d H:i:s" }}</div>
                                         <small class="text-muted">{{ history.login_time|date:"l" }}</small>
-                                    </td>
+                                     </div>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <i class="fas fa-{% if history.device_type == 'smartphone' %}mobile-alt{% elif history.device_type == 'tablet' %}tablet-alt{% else %}laptop{% endif %} fa-lg me-2 text-primary"></i>
-                                            <span>{{ history.get_device_type_display }}</span>
+                                            <div class="me-2">
+                                                <i class="fas fa-{% if history.device_type == 'smartphone' %}mobile-alt fa-lg{% elif history.device_type == 'tablet' %}tablet-alt fa-lg{% else %}laptop fa-lg{% endif %} text-primary"></i>
+                                            </div>
+                                            <span>{{ history.get_device_type_display|default:history.device_type|title }}</span>
                                         </div>
-                                    </td>
+                                     </div>
                                     <td>
-                                        <i class="fab fa-{% if 'windows' in history.os_type %}windows{% elif 'linux' in history.os_type %}linux{% elif 'apple' in history.os_type %}apple{% else %}chrome{% endif %}"></i>
-                                        {{ history.get_os_type_display }}
-                                    </td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fab fa-{% if 'windows' in history.os_type|lower %}windows{% elif 'linux' in history.os_type|lower %}linux{% elif 'mac' in history.os_type|lower or 'apple' in history.os_type|lower %}apple{% else %}chrome{% endif %} me-2"></i>
+                                            <span>{{ history.get_os_type_display|default:history.os_type|title }}</span>
+                                        </div>
+                                     </div>
                                     <td>
                                         <div>
-                                            <i class="fab fa-{% if 'Chrome' in history.browser %}chrome{% elif 'Firefox' in history.browser %}firefox{% elif 'Safari' in history.browser %}safari{% else %}edge{% endif %}"></i>
+                                            <i class="fab fa-{% if 'Chrome' in history.browser %}chrome{% elif 'Firefox' in history.browser %}firefox{% elif 'Safari' in history.browser %}safari{% elif 'Edge' in history.browser %}edge{% else %}internet-explorer{% endif %} me-1"></i>
                                             {{ history.browser }} {{ history.browser_version }}
                                         </div>
-                                    </td>
+                                     </div>
                                     <td>
                                         <div>
-                                            <i class="fas fa-map-marker-alt text-danger"></i>
                                             {% if history.location_country %}
-                                                {{ history.location_city|default:"" }}
-                                                {% if history.location_city and history.location_country %}, {% endif %}
-                                                {{ history.location_country }}
+                                                <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                                <span>{{ history.location_city|default:"" }}{% if history.location_city and history.location_country %}, {% endif %}{{ history.location_country }}</span>
+                                                {% if history.location_latitude %}
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-crosshairs"></i> 
+                                                        {{ history.location_latitude|floatformat:4 }}, {{ history.location_longitude|floatformat:4 }}
+                                                    </small>
+                                                {% endif %}
                                             {% else %}
-                                                Unknown
-                                            {% endif %}
-                                            {% if history.location_latitude %}
-                                                <br>
-                                                <small class="text-muted">
-                                                    <i class="fas fa-crosshairs"></i> 
-                                                    {{ history.location_latitude|floatformat:4 }}, {{ history.location_longitude|floatformat:4 }}
-                                                </small>
+                                                <span class="text-muted">
+                                                    <i class="fas fa-question-circle"></i> Unknown
+                                                </span>
                                             {% endif %}
                                         </div>
-                                    </td>
+                                     </div>
                                     <td>
-                                        <code>{{ history.ip_address }}</code>
-                                    </td>
+                                        <code class="bg-light p-1 rounded">{{ history.ip_address }}</code>
+                                     </div>
                                     <td>
                                         {% if history.logout_time %}
                                             <span class="badge bg-success">
-                                                <i class="fas fa-clock"></i> 
+                                                <i class="fas fa-check-circle"></i> 
                                                 {{ history.get_duration|default:"N/A" }} min
                                             </span>
                                             <br>
-                                            <small class="text-muted">Logged out: {{ history.logout_time|date:"H:i:s" }}</small>
+                                            <small class="text-muted">Ended: {{ history.logout_time|date:"H:i:s" }}</small>
                                         {% else %}
                                             <span class="badge bg-warning">
                                                 <i class="fas fa-circle"></i> Active
                                             </span>
+                                            <br>
+                                            <small class="text-muted">Current session</small>
                                         {% endif %}
-                                    </td>
-                                </tr>
+                                     </div>
+                                 </tr>
                                 {% empty %}
                                 <tr>
                                     <td colspan="7" class="text-center py-5">
@@ -113,16 +127,22 @@
                             </tbody>
                         </table>
                     </div>
-                    
-                    <!-- Pagination -->
-                    {% if login_history.has_other_pages %}
-                    <nav aria-label="Page navigation" class="mt-4">
-                        <ul class="pagination justify-content-center">
+                </div>
+                
+                <!-- Pagination -->
+                {% if login_history.has_other_pages %}
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
                             {% if login_history.has_previous %}
                             <li class="page-item">
                                 <a class="page-link" href="?page={{ login_history.previous_page_number }}">
                                     <i class="fas fa-chevron-left"></i> Previous
                                 </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
                             </li>
                             {% endif %}
                             
@@ -140,26 +160,51 @@
                                     Next <i class="fas fa-chevron-right"></i>
                                 </a>
                             </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
+                            </li>
                             {% endif %}
                         </ul>
                     </nav>
-                    {% endif %}
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
     
     <!-- Security Tips -->
     <div class="row mt-4">
-        <div class="col-12">
-            <div class="alert alert-info">
-                <h5><i class="fas fa-shield-alt"></i> Security Tips</h5>
-                <ul class="mb-0">
-                    <li>If you see any suspicious login activity, change your password immediately.</li>
-                    <li>Always log out from shared or public computers.</li>
-                    <li>Enable two-factor authentication for added security.</li>
-                    <li>Contact support if you notice unrecognized devices or locations.</li>
-                </ul>
+        <div class="col-md-6">
+            <div class="alert alert-info border-0 shadow-sm">
+                <div class="d-flex">
+                    <div class="me-3">
+                        <i class="fas fa-shield-alt fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="alert-heading">Security Tips</h5>
+                        <ul class="mb-0 ps-3">
+                            <li>If you see any suspicious login activity, change your password immediately.</li>
+                            <li>Always log out from shared or public computers.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-warning border-0 shadow-sm">
+                <div class="d-flex">
+                    <div class="me-3">
+                        <i class="fas fa-lock fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="alert-heading">Security Recommendations</h5>
+                        <ul class="mb-0 ps-3">
+                            <li>Enable two-factor authentication for added security.</li>
+                            <li>Contact support if you notice unrecognized devices or locations.</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -169,11 +214,45 @@
     .table td {
         vertical-align: middle;
     }
+    .table th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
     code {
         background-color: #f8f9fa;
-        padding: 2px 5px;
+        padding: 2px 6px;
         border-radius: 4px;
         font-size: 12px;
+        font-family: monospace;
+    }
+    .badge {
+        font-weight: 500;
+        padding: 5px 10px;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    .card-header {
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .card-footer {
+        border-top: 1px solid rgba(0,0,0,0.08);
+    }
+    .alert {
+        border-radius: 12px;
+    }
+    @media (max-width: 768px) {
+        .table th, .table td {
+            font-size: 12px;
+            padding: 8px;
+        }
+        .badge {
+            font-size: 10px;
+            padding: 3px 6px;
+        }
     }
 </style>
 {% endblock %}

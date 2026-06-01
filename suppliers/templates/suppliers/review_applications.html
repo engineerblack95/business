@@ -1,0 +1,176 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Pending Applications - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-clock"></i> Supplier Applications</h2>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Pending</small>
+                    <h3 class="mb-0">{{ stats.pending }}</h3>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Under Review</small>
+                    <h3 class="mb-0">{{ stats.reviewing }}</h3>
+                </div>
+                <div class="stats-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Approved</small>
+                    <h3 class="mb-0">{{ stats.approved }}</h3>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Rejected</small>
+                    <h3 class="mb-0">{{ stats.rejected }}</h3>
+                </div>
+                <div class="stats-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if current_status == 'pending' or not current_status %}active{% endif %}" 
+           href="?status=pending">
+            Pending
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if current_status == 'reviewing' %}active{% endif %}" 
+           href="?status=reviewing">
+            Under Review
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if current_status == 'approved' %}active{% endif %}" 
+           href="?status=approved">
+            Approved
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if current_status == 'rejected' %}active{% endif %}" 
+           href="?status=rejected">
+            Rejected
+        </a>
+    </li>
+</ul>
+
+<!-- Applications List -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Application #</th>
+                        <th>Business Name</th>
+                        <th>Applicant</th>
+                        <th>Business Type</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for application in applications %}
+                    <tr>
+                        <td><strong>{{ application.application_number }}</strong></td>
+                        <td>{{ application.business_name }}</a>
+                        <td>
+                            {{ application.supplier.full_name|default:application.supplier.email }}
+                            <br>
+                            <small class="text-muted">{{ application.supplier.email }}</small>
+                        </a>
+                        <td>{{ application.get_business_type_display }}</a>
+                        <td>
+                            <span class="badge bg-{{ application.get_status_badge_class }}">
+                                {{ application.get_status_display }}
+                            </span>
+                        </a>
+                        <td>{{ application.created_at|date:"Y-m-d H:i" }}</a>
+                        <td>
+                            <a href="{% url 'suppliers:review_application_detail' application.id %}" 
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye"></i> Review
+                            </a>
+                        </a>
+                    </a>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5>No Applications Found</h5>
+                            <p class="text-muted">There are no supplier applications in this category.</p>
+                        </a>
+                    </a>
+                    {% endfor %}
+                </tbody>
+            </a>
+        </div>
+        
+        <!-- Pagination -->
+        {% if applications.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if applications.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ applications.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for num in applications.paginator.page_range %}
+                    {% if applications.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > applications.number|add:'-3' and num < applications.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if current_status %}&status={{ current_status }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if applications.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ applications.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

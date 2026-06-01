@@ -1,0 +1,321 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Payout History - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-money-bill-wave"></i> Payout History</h2>
+    <a href="{% url 'dashboard:supplier' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Total Paid</small>
+                    <h3 class="mb-0 text-success">{{ total_paid|floatformat:0 }} FRW</h3>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Pending Payouts</small>
+                    <h3 class="mb-0 text-warning">{{ total_pending|floatformat:0 }} FRW</h3>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-clock fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payout History Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Payout Transactions</h5>
+    </div>
+    <div class="card-body">
+        {% if payouts %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Payout #</th>
+                        <th>Period</th>
+                        <th>Total Sales</th>
+                        <th>Commission Deducted</th>
+                        <th>Net Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payout in payouts %}
+                    <tr>
+                        <td><strong>{{ payout.payout_number }}</strong></td>
+                        <td>
+                            {{ payout.period_start|date:"M d, Y" }} - {{ payout.period_end|date:"M d, Y" }}
+                        </a>
+                        <td class="text-primary">{{ payout.amount|floatformat:0 }} FRW</a>
+                        <td class="text-danger">{{ payout.commission_deducted|floatformat:0 }} FRW</a>
+                        <td class="fw-bold">{{ payout.net_amount|floatformat:0 }} FRW</a>
+                        <td>
+                            {% if payout.status == 'completed' %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle"></i> Completed
+                            </span>
+                            {% elif payout.status == 'pending' %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-clock"></i> Pending
+                            </span>
+                            {% elif payout.status == 'processing' %}
+                            <span class="badge bg-info">
+                                <i class="fas fa-spinner fa-spin"></i> Processing
+                            </span>
+                            {% elif payout.status == 'failed' %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Failed
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ payout.get_status_display }}</span>
+                            {% endif %}
+                        </a>
+                        <td>{{ payout.created_at|date:"Y-m-d H:i" }}</a>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#payoutModal{{ payout.id }}">
+                                <i class="fas fa-eye"></i> Details
+                            </button>
+                        </a>
+                    </a>
+                    {% endfor %}
+                </tbody>
+            </a>
+        </div>
+        
+        <!-- Pagination -->
+        {% if payouts.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if payouts.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ payouts.previous_page_number }}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for num in payouts.paginator.page_range %}
+                    {% if payouts.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > payouts.number|add:'-3' and num < payouts.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if payouts.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ payouts.next_page_number }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+            <h5>No Payouts Yet</h5>
+            <p class="text-muted">Payouts will appear here once you start making sales.</p>
+            <p class="text-muted small">When customers purchase your products, earnings after commission will be shown here.</p>
+            <a href="{% url 'products:supplier_create' %}" class="btn btn-primary mt-2">
+                <i class="fas fa-plus"></i> Add Your First Product
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Payout Detail Modals -->
+{% for payout in payouts %}
+<div class="modal fade" id="payoutModal{{ payout.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Payout Details - {{ payout.payout_number }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <strong>Payout Information</strong>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th width="40%">Payout Number:</th>
+                                        <td>{{ payout.payout_number }}</a>
+                                    </tr>
+                                    <tr>
+                                        <th>Period:</th>
+                                        <td>{{ payout.period_start|date:"M d, Y" }} - {{ payout.period_end|date:"M d, Y" }}</a>
+                                    </tr>
+                                    <tr>
+                                        <th>Status:</th>
+                                        <td>
+                                            {% if payout.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                            {% elif payout.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                            {% elif payout.status == 'processing' %}
+                                            <span class="badge bg-info">Processing</span>
+                                            {% elif payout.status == 'failed' %}
+                                            <span class="badge bg-danger">Failed</span>
+                                            {% endif %}
+                                        </a>
+                                    </tr>
+                                    <tr>
+                                        <th>Created:</th>
+                                        <td>{{ payout.created_at|date:"F j, Y H:i" }}</a>
+                                    </tr>
+                                    <tr>
+                                        <th>Completed:</th>
+                                        <td>{{ payout.completed_at|date:"F j, Y H:i"|default:"-" }}</a>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <strong>Amount Breakdown</strong>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th width="50%">Total Sales:</th>
+                                        <td class="text-primary">{{ payout.amount|floatformat:0 }} FRW</a>
+                                    </tr>
+                                    <tr>
+                                        <th>Commission (7%):</th>
+                                        <td class="text-danger">{{ payout.commission_deducted|floatformat:0 }} FRW</a>
+                                    </tr>
+                                    <tr>
+                                        <th>Your Net Earnings:</th>
+                                        <td class="fw-bold text-success">{{ payout.net_amount|floatformat:0 }} FRW</a>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if payout.order_items.all %}
+                <div class="card">
+                    <div class="card-header">
+                        <strong>Order Items Included</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Quantity</th>
+                                        <th>Price</th>
+                                        <th>Commission</th>
+                                        <th>Your Earnings</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in payout.order_items.all %}
+                                    <tr>
+                                        <td>{{ item.product.name|truncatechars:40 }}</a>
+                                        <td>{{ item.quantity }}</a>
+                                        <td>{{ item.final_price|floatformat:0 }} FRW</a>
+                                        <td>{{ item.commission_amount|floatformat:0 }} FRW</a>
+                                        <td><strong>{{ item.supplier_payout_amount|floatformat:0 }} FRW</strong></a>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if payout.payment_details %}
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <strong>Payment Details</strong>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Method:</strong> {{ payout.get_payment_method_display }}</p>
+                        {% if payout.transaction_reference %}
+                        <p><strong>Reference:</strong> {{ payout.transaction_reference }}</p>
+                        {% endif %}
+                        {% if payout.notes %}
+                        <p><strong>Notes:</strong> {{ payout.notes }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                {% if payout.status == 'pending' %}
+                <button type="button" class="btn btn-info" disabled>
+                    <i class="fas fa-clock"></i> Processing
+                </button>
+                {% elif payout.status == 'completed' %}
+                <button type="button" class="btn btn-success" disabled>
+                    <i class="fas fa-check"></i> Completed
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<style>
+    .stats-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+    }
+</style>
+{% endblock %}

@@ -19,6 +19,7 @@ urlpatterns = [
     path('my-orders/', views.order_list_view, name='order_list'),
     path('order/<uuid:order_id>/', views.order_detail_view, name='order_detail'),
     path('order/<uuid:order_id>/receipt/', views.download_receipt_view, name='download_receipt'),
+    path('cart/count/', views.cart_count_view, name='cart_count'),
     
     # Admin
     path('admin/orders/', views.admin_orders_view, name='admin_orders'),

@@ -1,0 +1,119 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Performance Report - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-line"></i> Performance Report</h2>
+    <a href="{% url 'dashboard:supplier' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card text-center mb-4">
+            <div class="card-body">
+                <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
+                <h3>{{ score|floatformat:1 }}%</h3>
+                <p class="text-muted">Performance Score</p>
+                <div class="progress mb-3" style="height: 10px;">
+                    <div class="progress-bar bg-success" style="width: {{ score }}%"></div>
+                </div>
+                <span class="badge bg-primary">{{ badge }}</span>
+                <p class="mt-2 small text-muted">Commission Rate: {{ commission_rate }}%</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center mb-4">
+            <div class="card-body">
+                <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                <h3>{{ weekly.total_sales|floatformat:0 }} FRW</h3>
+                <p class="text-muted">Last 7 Days Sales</p>
+                <small>{{ weekly.units_sold }} units sold</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center mb-4">
+            <div class="card-body">
+                <i class="fas fa-calendar fa-3x text-info mb-3"></i>
+                <h3>{{ monthly_sales|floatformat:0 }} FRW</h3>
+                <p class="text-muted">Last 30 Days Sales</p>
+                <small>{{ monthly_units }} units sold</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-star"></i> Top Selling Products</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for product in top_products %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ product.name|truncatechars:30 }}</strong>
+                                <br>
+                                <small class="text-muted">{{ product.final_price|floatformat:0 }} FRW</small>
+                            </div>
+                            <div>
+                                <span class="badge bg-success">{{ product.sales_count }} sold</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-3">
+                        <p class="text-muted">No products sold yet</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Performance Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-3">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>Improve Your Score:</strong>
+                        <ul class="mt-1">
+                            <li>Add more products to your store</li>
+                            <li>Respond to customer inquiries quickly</li>
+                            <li>Maintain high product quality</li>
+                            <li>Encourage customer reviews</li>
+                        </ul>
+                    </li>
+                    <li class="mb-3">
+                        <i class="fas fa-tag text-info"></i>
+                        <strong>Next Tier:</strong>
+                        {% if tier == 'Bronze' %}
+                        Reach 60% for Silver tier
+                        {% elif tier == 'Silver' %}
+                        Reach 75% for Gold tier
+                        {% elif tier == 'Gold' %}
+                        Reach 90% for Platinum tier
+                        {% elif tier == 'Platinum' %}
+                        You're at the highest tier!
+                        {% else %}
+                        Start selling to reach Bronze tier
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

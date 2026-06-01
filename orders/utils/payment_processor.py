@@ -4,7 +4,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 import secrets
-from orders.models import PaymentTransaction, Order, CommissionEarning
+from orders.models import PaymentTransaction, Order, CommissionEarning, SupplierPayout
 from products.utils.stock_manager import StockManager
 
 
@@ -136,27 +136,17 @@ class PaymentProcessor:
     @classmethod
     def create_supplier_payouts(cls, order):
         """Create payout records for suppliers"""
-        from orders.models import SupplierPayout
-        
         for item in order.items.filter(is_supplier_product=True):
             # Check if payout already exists
             if not hasattr(item, 'supplier_payout'):
-                try:
-                    SupplierPayout.objects.create(
-                        supplier=item.product.owner,
-                        order_item=item,
-                        amount=item.supplier_payout_amount,
-                        status='pending'
-                    )
-                except TypeError as e:
-                    # If the model doesn't accept order_item, try alternative
-                    print(f"Error creating payout: {e}")
-                    # Alternative creation method
-                    SupplierPayout.objects.create(
-                        supplier=item.product.owner,
-                        amount=item.supplier_payout_amount,
-                        status='pending'
-                    )
+                SupplierPayout.objects.create(
+                    supplier=item.product.owner,
+                    order_item=item,
+                    amount=item.supplier_payout_amount,
+                    commission_deducted=item.commission_amount,
+                    status='pending',
+                    payment_method='mobile_money'
+                )
     
     @classmethod
     def send_order_confirmation(cls, order):
@@ -246,6 +236,4 @@ class RealPaymentProcessor:
         Process real mobile money payment
         To be implemented when deploying to production
         """
-        # This is a placeholder - you'll integrate actual API here
-        # Example for MTN MoMo API, Airtel Money, etc.
         raise NotImplementedError("Real payment integration not implemented in development mode")

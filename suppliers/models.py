@@ -20,7 +20,7 @@ def supplier_logo_path(instance, filename):
 
 
 # ============================================================
-# MOVED SupplierProfile BEFORE SupplierApplication
+# SupplierProfile Model
 # ============================================================
 
 class SupplierProfile(models.Model):
@@ -148,7 +148,7 @@ class SupplierProfile(models.Model):
 
 
 # ============================================================
-# SupplierApplication Model (AFTER SupplierProfile)
+# SupplierApplication Model
 # ============================================================
 
 class SupplierApplication(models.Model):
@@ -296,13 +296,12 @@ class SupplierApplication(models.Model):
         user.tax_id = self.tax_id
         user.save()
         
-        # Create or update supplier profile (SupplierProfile is now defined above)
+        # Create or update supplier profile - REMOVED tax_id (doesn't exist in SupplierProfile)
         profile, created = SupplierProfile.objects.get_or_create(
             supplier=user,
             defaults={
                 'business_name': self.business_name,
                 'business_type': self.business_type,
-                'tax_id': self.tax_id,
                 'business_phone': self.business_phone,
                 'business_email': self.business_email,
                 'business_address': self.business_address,
@@ -316,10 +315,9 @@ class SupplierApplication(models.Model):
         )
         
         if not created:
-            # Update existing profile
+            # Update existing profile - REMOVED tax_id
             profile.business_name = self.business_name
             profile.business_type = self.business_type
-            profile.tax_id = self.tax_id
             profile.business_phone = self.business_phone
             profile.business_email = self.business_email
             profile.business_address = self.business_address

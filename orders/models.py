@@ -29,17 +29,35 @@ class Cart(models.Model):
     
     def get_total_base_price(self):
         """Calculate total base price (excl VAT)"""
-        total = sum(item.get_base_price() for item in self.items.all())
+        from decimal import Decimal
+        items = self.items.all()
+        if not items:
+            return Decimal('0.00')
+        total = sum(item.get_base_price() for item in items)
+        if isinstance(total, int):
+            total = Decimal(total)
         return total.quantize(Decimal('0.01'))
     
     def get_total_vat(self):
         """Calculate total VAT amount"""
-        total = sum(item.get_vat_amount() for item in self.items.all())
+        from decimal import Decimal
+        items = self.items.all()
+        if not items:
+            return Decimal('0.00')
+        total = sum(item.get_vat_amount() for item in items)
+        if isinstance(total, int):
+            total = Decimal(total)
         return total.quantize(Decimal('0.01'))
     
     def get_grand_total(self):
         """Calculate grand total (including VAT)"""
-        total = sum(item.get_final_price() for item in self.items.all())
+        from decimal import Decimal
+        items = self.items.all()
+        if not items:
+            return Decimal('0.00')
+        total = sum(item.get_final_price() for item in items)
+        if isinstance(total, int):
+            total = Decimal(total)
         return total.quantize(Decimal('0.01'))
     
     def get_total_items(self):
@@ -63,7 +81,6 @@ class CartItem(models.Model):
     product = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='cart_items')
     quantity = models.IntegerField(validators=[MinValueValidator(1)])
     
-    # Snapshot of product prices at time of adding to cart
     snapshot_base_price = models.DecimalField(max_digits=12, decimal_places=2)
     snapshot_vat_amount = models.DecimalField(max_digits=12, decimal_places=2)
     snapshot_final_price = models.DecimalField(max_digits=12, decimal_places=2)
@@ -80,23 +97,27 @@ class CartItem(models.Model):
     
     def save(self, *args, **kwargs):
         """Take snapshot of product prices when adding to cart"""
+        from decimal import Decimal
         if not self.snapshot_base_price:
-            self.snapshot_base_price = self.product.base_price
-            self.snapshot_vat_amount = self.product.vat_amount
-            self.snapshot_final_price = self.product.final_price
+            self.snapshot_base_price = Decimal(str(self.product.base_price))
+            self.snapshot_vat_amount = Decimal(str(self.product.vat_amount))
+            self.snapshot_final_price = Decimal(str(self.product.final_price))
         super().save(*args, **kwargs)
     
     def get_base_price(self):
         """Get total base price for this item"""
-        return (self.snapshot_base_price * self.quantity).quantize(Decimal('0.01'))
+        from decimal import Decimal
+        return (Decimal(str(self.snapshot_base_price)) * self.quantity).quantize(Decimal('0.01'))
     
     def get_vat_amount(self):
         """Get total VAT for this item"""
-        return (self.snapshot_vat_amount * self.quantity).quantize(Decimal('0.01'))
+        from decimal import Decimal
+        return (Decimal(str(self.snapshot_vat_amount)) * self.quantity).quantize(Decimal('0.01'))
     
     def get_final_price(self):
         """Get total final price for this item"""
-        return (self.snapshot_final_price * self.quantity).quantize(Decimal('0.01'))
+        from decimal import Decimal
+        return (Decimal(str(self.snapshot_final_price)) * self.quantity).quantize(Decimal('0.01'))
 
 
 class Order(models.Model):
@@ -129,39 +150,32 @@ class Order(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order_number = models.CharField(max_length=20, unique=True, editable=False)
     
-    # Customer information
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='orders'
     )
     
-    # Order totals (snapshot at time of purchase)
     subtotal_base = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total base price excl VAT")
     total_vat = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total VAT amount")
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total including VAT")
     
-    # Shipping information
     shipping_address = models.TextField()
     shipping_city = models.CharField(max_length=100, blank=True, default='')
     shipping_phone = models.CharField(max_length=20)
     shipping_notes = models.TextField(blank=True)
     
-    # Payment information
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='mobile_money')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
     payment_reference = models.CharField(max_length=100, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
     
-    # Order status
     order_status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='pending')
     
-    # Tracking
     tracking_number = models.CharField(max_length=100, blank=True)
     estimated_delivery = models.DateField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -179,7 +193,6 @@ class Order(models.Model):
         return f"Order {self.order_number} - {self.customer.email}"
     
     def save(self, *args, **kwargs):
-        """Generate order number if not exists"""
         if not self.order_number:
             date_part = timezone.now().strftime('%Y%m%d')
             random_part = secrets.token_hex(3).upper()
@@ -187,14 +200,12 @@ class Order(models.Model):
         super().save(*args, **kwargs)
     
     def get_commission_total(self):
-        """Calculate total commission from all items in order"""
         total_commission = Decimal('0.00')
         for item in self.items.all():
             total_commission += item.commission_amount
         return total_commission.quantize(Decimal('0.01'))
     
     def get_supplier_payouts(self):
-        """Get all supplier payouts for this order"""
         from django.db.models import Sum
         return self.items.filter(product__is_supplier_product=True).values(
             'product__owner'
@@ -203,17 +214,14 @@ class Order(models.Model):
         )
     
     def can_be_cancelled(self):
-        """Check if order can be cancelled"""
         return self.order_status in ['pending', 'paid'] and self.payment_status != 'refunded'
     
     def cancel_order(self):
-        """Cancel order and restore stock"""
         if self.can_be_cancelled():
             for item in self.items.all():
                 item.product.increase_stock(item.quantity)
                 item.status = 'cancelled'
                 item.save()
-            
             self.order_status = 'cancelled'
             self.save()
             return True
@@ -236,23 +244,18 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='order_items')
     
-    # Quantity
     quantity = models.IntegerField(validators=[MinValueValidator(1)])
     
-    # Price snapshot (at time of purchase)
     base_price = models.DecimalField(max_digits=12, decimal_places=2)
     vat_amount = models.DecimalField(max_digits=12, decimal_places=2)
     final_price = models.DecimalField(max_digits=12, decimal_places=2)
     
-    # Commission & Payout (CRITICAL for supplier products)
     is_supplier_product = models.BooleanField(default=False)
     commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     supplier_payout_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
-    # Status
     status = models.CharField(max_length=20, choices=ITEM_STATUS_CHOICES, default='pending')
     
-    # Tracking
     shipped_at = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
     
@@ -269,7 +272,6 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.product.name} (Order {self.order.order_number})"
     
     def save(self, *args, **kwargs):
-        """Calculate commission and payout for supplier products"""
         from django.conf import settings
         
         if self.is_supplier_product:
@@ -280,19 +282,15 @@ class OrderItem(models.Model):
         super().save(*args, **kwargs)
     
     def get_total_base_price(self):
-        """Get total base price for this item"""
         return (self.base_price * self.quantity).quantize(Decimal('0.01'))
     
     def get_total_vat(self):
-        """Get total VAT for this item"""
         return (self.vat_amount * self.quantity).quantize(Decimal('0.01'))
     
     def get_total_final_price(self):
-        """Get total final price for this item"""
         return (self.final_price * self.quantity).quantize(Decimal('0.01'))
     
     def get_commission_amount(self):
-        """Get commission amount for this item"""
         return self.commission_amount
 
 
@@ -310,12 +308,10 @@ class PaymentTransaction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='transactions')
     
-    # Transaction details
     transaction_id = models.CharField(max_length=100, unique=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     payment_method = models.CharField(max_length=50)
     
-    # Customer info
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
@@ -324,36 +320,30 @@ class PaymentTransaction(models.Model):
         blank=True
     )
     
-    # Mobile money specific
     mobile_money_number = models.CharField(max_length=20, blank=True)
     provider = models.CharField(max_length=50, default='simulated')
     
-    # Status
     status = models.CharField(max_length=20, choices=TRANSACTION_STATUS, default='initiated')
     status_message = models.TextField(blank=True)
     provider_reference = models.CharField(max_length=100, blank=True)
     provider_transaction_id = models.CharField(max_length=100, blank=True)
     
-    # Breakdown
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     vat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     supplier_payout = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     platform_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
-    # Request/Response data
     request_data = models.JSONField(default=dict, blank=True)
     response_data = models.JSONField(default=dict, blank=True)
     webhook_data = models.JSONField(default=dict, blank=True)
     
-    # Metadata
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     retry_count = models.IntegerField(default=0)
     last_retry_at = models.DateTimeField(null=True, blank=True)
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     initiated_at = models.DateTimeField(auto_now_add=True)
     processing_at = models.DateTimeField(null=True, blank=True)
@@ -386,7 +376,7 @@ class CommissionEarning(models.Model):
     admin = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
-        related_name='order_commissions_earned'  # ← FIXED: unique related_name
+        related_name='order_commissions_earned'
     )
     
     amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -405,6 +395,72 @@ class CommissionEarning(models.Model):
     
     def __str__(self):
         return f"Commission {self.amount} from Order {self.order_item.order.order_number}"
+
+
+# ============================================================
+# ADDED: SupplierPayout Model (FIX FOR IMPORT ERROR)
+# ============================================================
+
+class SupplierPayout(models.Model):
+    """Track supplier payouts for their products"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('paid', 'Paid'),
+        ('failed', 'Failed'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    payout_number = models.CharField(max_length=50, unique=True, editable=False)
+    
+    supplier = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='supplier_payouts'
+    )
+    
+    # Link to order item
+    order_item = models.OneToOneField(
+        'OrderItem', 
+        on_delete=models.CASCADE, 
+        related_name='supplier_payout'
+    )
+    
+    # Amounts
+    amount = models.DecimalField(max_digits=12, decimal_places=2)  # Net amount after commission
+    commission_deducted = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    
+    # Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # Payment details
+    payment_method = models.CharField(max_length=50, default='mobile_money')
+    payment_reference = models.CharField(max_length=100, blank=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['supplier', 'status']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Payout {self.payout_number} - {self.supplier.email} - {self.amount}"
+    
+    def save(self, *args, **kwargs):
+        if not self.payout_number:
+            import secrets
+            date_part = timezone.now().strftime('%Y%m%d')
+            random_part = secrets.token_hex(4).upper()
+            self.payout_number = f"PO-{date_part}-{random_part}"
+        super().save(*args, **kwargs)
+
 
 class WithdrawalRequest(models.Model):
     """Admin withdrawal requests for accumulated commission"""
@@ -429,7 +485,6 @@ class WithdrawalRequest(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     rejection_reason = models.TextField(blank=True)
     
-    # Review information
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.SET_NULL, 
@@ -439,7 +494,6 @@ class WithdrawalRequest(models.Model):
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     
-    # Tracking
     request_reference = models.CharField(max_length=100, unique=True, editable=False)
     transaction_reference = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
@@ -466,14 +520,12 @@ class WithdrawalRequest(models.Model):
         return f"Withdrawal {self.amount} - {self.status}"
     
     def approve(self, admin_user):
-        """Approve withdrawal request"""
         self.status = 'approved'
         self.reviewed_by = admin_user
         self.reviewed_at = timezone.now()
         self.save()
     
     def reject(self, admin_user, reason):
-        """Reject withdrawal request"""
         self.status = 'rejected'
         self.rejection_reason = reason
         self.reviewed_by = admin_user
@@ -481,7 +533,6 @@ class WithdrawalRequest(models.Model):
         self.save()
     
     def mark_completed(self, reference=''):
-        """Mark as completed"""
         self.status = 'completed'
         self.completed_at = timezone.now()
         if reference:

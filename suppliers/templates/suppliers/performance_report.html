@@ -1,0 +1,259 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Performance Report - HerosTechnology{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-line"></i> Performance Report</h2>
+    <a href="{% url 'dashboard:supplier' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<!-- Performance Score Card -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stats-card text-center">
+            <div class="card-body">
+                <i class="fas fa-trophy fa-3x text-warning mb-3"></i>
+                <h2 class="display-4 fw-bold" style="color: var(--secondary-color);">{{ score|floatformat:1 }}%</h2>
+                <p class="text-muted">Performance Score</p>
+                <div class="progress mb-3" style="height: 10px;">
+                    <div class="progress-bar bg-success" style="width: {{ score }}%"></div>
+                </div>
+                <span class="badge bg-primary fs-6 p-2">{{ badge }}</span>
+                <p class="mt-2 text-muted">
+                    <i class="fas fa-percent"></i> Commission Rate: {{ commission_rate }}%
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card text-center">
+            <div class="card-body">
+                <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                <h3 class="mb-0">{{ weekly.total_sales|floatformat:0 }} FRW</h3>
+                <p class="text-muted">Last 7 Days Sales</p>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span>Units Sold:</span>
+                    <strong>{{ weekly.units_sold|default:0 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                    <span>Orders:</span>
+                    <strong>{{ weekly.orders_count|default:0 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                    <span>Avg Order Value:</span>
+                    <strong>{{ weekly.avg_order_value|floatformat:0 }} FRW</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card text-center">
+            <div class="card-body">
+                <i class="fas fa-calendar-alt fa-3x text-info mb-3"></i>
+                <h3 class="mb-0">{{ monthly_sales|floatformat:0 }} FRW</h3>
+                <p class="text-muted">Last 30 Days Sales</p>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span>Total Units:</span>
+                    <strong>{{ monthly_units|default:0 }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Top Selling Products -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-star"></i> Top Selling Products</h5>
+            </div>
+            <div class="card-body">
+                {% if top_products %}
+                <div class="list-group">
+                    {% for product in top_products %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ product.name|truncatechars:35 }}</strong>
+                                <br>
+                                <small class="text-muted">{{ product.final_price|floatformat:0 }} FRW</small>
+                            </div>
+                            <div>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-chart-simple"></i> {{ product.sales_count }} sold
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No products sold yet.</p>
+                    <a href="{% url 'products:supplier_create' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> Add Your First Product
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Tips & Next Tier -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Performance Insights</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6><i class="fas fa-chart-line text-primary"></i> Your Current Tier</h6>
+                    <div class="alert alert-info">
+                        <strong>{{ badge }}</strong> - {{ commission_rate }}% commission rate
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6><i class="fas fa-arrow-up text-success"></i> Next Tier Goal</h6>
+                    <div class="alert alert-warning">
+                        {% if tier == 'Standard' %}
+                        <strong>Next: Bronze (40% score)</strong><br>
+                        Keep selling to reach Bronze tier for better commission rates.
+                        {% elif tier == 'Bronze' %}
+                        <strong>Next: Silver (60% score)</strong><br>
+                        Increase your sales and customer ratings to reach Silver tier.
+                        {% elif tier == 'Silver' %}
+                        <strong>Next: Gold (75% score)</strong><br>
+                        Maintain high quality and respond quickly to inquiries.
+                        {% elif tier == 'Gold' %}
+                        <strong>Next: Platinum (90% score)</strong><br>
+                        You're almost at the top! Keep up the excellent work.
+                        {% else %}
+                        <strong>You're at the highest tier!</strong><br>
+                        Maintain your performance to keep the best commission rate.
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <h6><i class="fas fa-lightbulb text-warning"></i> Tips to Improve</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <strong>Add more products</strong> - More products mean more sales opportunities
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <strong>Respond quickly</strong> - Fast responses improve customer satisfaction
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <strong>Quality products</strong> - High-quality products get better reviews
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <strong>Competitive pricing</strong> - Good prices attract more customers
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance History Chart (Optional) -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Sales Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Sample chart data - you can replace with actual weekly sales data
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            datasets: [{
+                label: 'Sales (FRW)',
+                data: [
+                    {{ weekly.total_sales|floatformat:0|default:0 }},
+                    {{ monthly_sales|floatformat:0|default:0 }},
+                    0, 0
+                ],
+                borderColor: '#E67E22',
+                backgroundColor: 'rgba(230, 126, 34, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString() + ' FRW';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+<style>
+    .stats-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .progress {
+        border-radius: 10px;
+        background-color: #e9ecef;
+    }
+    .progress-bar {
+        border-radius: 10px;
+        background-color: #E67E22;
+    }
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+    }
+    .list-group-item:first-child {
+        border-top: none;
+    }
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}

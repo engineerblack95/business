@@ -139,9 +139,10 @@
                 {% for supplier in recent_suppliers %}
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <strong>{{ supplier.full_name|default:supplier.email|truncatechars:20 }}</strong>
+                        <!-- FIXED: Use supplier.supplier.email because supplier is SupplierApplication object -->
+                        <strong>{{ supplier.business_name|truncatechars:20 }}</strong>
                         <br>
-                        <small class="text-muted">{{ supplier.business_name|default:"No business name" }}</small>
+                        <small class="text-muted">{{ supplier.supplier.email|default:"No email" }}</small>
                     </div>
                     <a href="{% url 'dashboard:approve_supplier' supplier.id %}" class="btn btn-sm btn-success" onclick="return confirm('Approve this supplier?')">
                         <i class="fas fa-check"></i> Approve

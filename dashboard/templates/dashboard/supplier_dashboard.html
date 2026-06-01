@@ -101,24 +101,22 @@
                         <tbody>
                             {% for order in recent_orders %}
                             <tr>
-                                <td>
-                                    <a href="{% url 'orders:order_detail' order.id %}">{{ order.order_number|truncatechars:12 }}</a>
-                                </a>
-                                <td>{{ order.customer.email|truncatechars:15 }}</a>
-                                <td>{{ order.grand_total|floatformat:0 }} FRW</a>
+                                <td><a href="{% url 'orders:order_detail' order.id %}">{{ order.order_number|truncatechars:12 }}</a></td>
+                                <td>{{ order.customer.email|truncatechars:15 }}</td>
+                                <td>{{ order.grand_total|floatformat:0 }} FRW</td>
                                 <td>
                                     <span class="badge {% if order.order_status == 'delivered' %}bg-success{% elif order.order_status == 'pending' %}bg-warning{% elif order.order_status == 'processing' %}bg-info{% elif order.order_status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
                                         {{ order.get_order_status_display }}
                                     </span>
-                                </a>
-                            </a>
+                                </td>
+                            </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center">No orders yet</a>
-                            </a>
+                                <td colspan="4" class="text-center">No orders yet</td>
+                            </tr>
                             {% endfor %}
                         </tbody>
-                    </a>
+                    </table>
                 </div>
             </div>
         </div>
@@ -214,4 +212,21 @@
 </div>
 
 {% endif %}
+
+<!-- Footer -->
+<footer class="mt-5 pt-3 border-top">
+    <div class="row">
+        <div class="col-md-6">
+            <p class="text-muted small mb-0">
+                <i class="fas fa-store"></i> HerosTechnology Supplier Portal
+            </p>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <p class="text-muted small mb-0">
+                &copy; {% now "Y" %} HerosTechnology. All rights reserved.
+            </p>
+        </div>
+    </div>
+</footer>
+
 {% endblock %}

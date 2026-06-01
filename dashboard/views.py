@@ -5,17 +5,19 @@ from django.db.models import Q, Sum, Count
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.http import JsonResponse
+from django.urls import reverse
 
 from accounts.decorators import role_required, permission_required
 from .utils.analytics import DashboardAnalytics
 from .utils.notifications import NotificationManager
 from .models import UserActivityLog, DashboardPreference
-from notifications.models import Notification  # FIXED: Import Notification from notifications app
+from notifications.models import Notification
 from .forms import TeamMemberForm, NotificationFilterForm, ProductQuickEditForm
 
 from products.models import Product, Category
 from orders.models import Order, OrderItem, CommissionEarning, WithdrawalRequest
 from accounts.models import User
+
 
 @login_required
 def dashboard_redirect_view(request):
@@ -44,11 +46,11 @@ def admin_dashboard_view(request):
         is_read=False
     ).count()
     
-    # Get recent supplier applications
-    recent_suppliers = User.objects.filter(
-        role='supplier',
-        is_approved_supplier=False
-    ).order_by('-date_joined')[:5]
+    # Get recent supplier applications (from SupplierApplication model)
+    from suppliers.models import SupplierApplication
+    recent_applications = SupplierApplication.objects.filter(
+        status__in=['pending', 'reviewing']
+    ).select_related('supplier').order_by('-created_at')[:5]
     
     # Get recent withdrawal requests
     recent_withdrawals = WithdrawalRequest.objects.filter(
@@ -58,7 +60,7 @@ def admin_dashboard_view(request):
     context = {
         'analytics': analytics,
         'unread_notifications': unread_notifications,
-        'recent_suppliers': recent_suppliers,
+        'recent_suppliers': recent_applications,
         'recent_withdrawals': recent_withdrawals,
         'section': 'overview',
     }
@@ -378,17 +380,48 @@ def quick_stock_update_view(request):
 @login_required
 @role_required(['admin'])
 def manage_suppliers_view(request):
-    """Admin manage suppliers"""
+    """Admin manage suppliers - shows pending applications and approved suppliers"""
     
-    suppliers = User.objects.filter(role='supplier').order_by('-date_joined')
+    from suppliers.models import SupplierApplication
     
-    # Filter pending
     show_pending = request.GET.get('pending', 'false') == 'true'
+    
     if show_pending:
-        suppliers = suppliers.filter(is_approved_supplier=False)
+        # Show pending applications from SupplierApplication model
+        pending_applications = SupplierApplication.objects.filter(
+            status__in=['pending', 'reviewing']
+        ).select_related('supplier')
+        
+        # Extract the users from pending applications
+        supplier_ids = [app.supplier.id for app in pending_applications]
+        suppliers = User.objects.filter(id__in=supplier_ids) if supplier_ids else User.objects.none()
+        
+        # Add the application data as an attribute for use in template
+        for supplier in suppliers:
+            if hasattr(supplier, 'supplier_application'):
+                supplier.application = supplier.supplier_application
+            else:
+                try:
+                    supplier.application = SupplierApplication.objects.get(supplier=supplier)
+                except SupplierApplication.DoesNotExist:
+                    supplier.application = None
+        
+        suppliers = suppliers.order_by('-date_joined')
+        
+    else:
+        # Show approved suppliers
+        suppliers = User.objects.filter(
+            role='supplier', 
+            is_approved_supplier=True
+        ).select_related('supplier_profile').order_by('-date_joined')
+    
+    # Pagination
+    paginator = Paginator(suppliers, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     context = {
-        'suppliers': suppliers,
+        'suppliers': page_obj,
         'show_pending': show_pending,
         'section': 'suppliers',
     }
@@ -400,34 +433,80 @@ def manage_suppliers_view(request):
 def approve_supplier_view(request, user_id):
     """Admin approve supplier application"""
     
-    supplier = get_object_or_404(User, id=user_id, role='supplier')
+    from suppliers.models import SupplierApplication, SupplierProfile
+    from notifications.utils.notification_service import NotificationService
+    
+    supplier = get_object_or_404(User, id=user_id)
+    
+    # Get the application
+    try:
+        application = SupplierApplication.objects.get(supplier=supplier, status__in=['pending', 'reviewing'])
+    except SupplierApplication.DoesNotExist:
+        messages.error(request, 'No pending application found for this supplier.')
+        return redirect('dashboard:manage_suppliers')
     
     if request.method == 'POST':
-        # CRITICAL: Update both is_approved_supplier AND role
+        # Update user role and approval status
+        supplier.role = 'supplier'
         supplier.is_approved_supplier = True
-        supplier.role = 'supplier'  # Make sure role is supplier
+        supplier.business_name = application.business_name
+        # tax_id is on User model, not on SupplierProfile
+        if application.tax_id:
+            supplier.tax_id = application.tax_id
         supplier.save()
         
-        # Create supplier profile if not exists
-        from suppliers.models import SupplierProfile
+        # Update application status
+        application.status = 'approved'
+        application.reviewed_by = request.user
+        application.reviewed_at = timezone.now()
+        application.approved_at = timezone.now()
+        application.save()
+        
+        # Create or update supplier profile - REMOVED tax_id from here
         profile, created = SupplierProfile.objects.get_or_create(
             supplier=supplier,
             defaults={
-                'business_name': getattr(supplier, 'business_name', f"{supplier.email}'s Business"),
-                'business_type': 'individual',
-                'business_phone': getattr(supplier, 'phone', '+250780000000'),
-                'business_email': supplier.email,
+                'business_name': application.business_name,
+                'business_type': application.business_type,
+                'business_phone': application.business_phone,
+                'business_email': application.business_email,
+                'business_address': application.business_address,
+                'business_city': application.business_city,
+                'business_country': application.business_country,
+                'website': application.website,
+                'years_in_business': application.years_in_business,
                 'verification_status': 'verified',
                 'is_active': True
             }
         )
         
-        # Send notification
-        NotificationManager.notify_supplier_approved(supplier)
+        if not created:
+            # Update existing profile
+            profile.business_name = application.business_name
+            profile.business_type = application.business_type
+            profile.business_phone = application.business_phone
+            profile.business_email = application.business_email
+            profile.business_address = application.business_address
+            profile.business_city = application.business_city
+            profile.business_country = application.business_country
+            profile.website = application.website
+            profile.years_in_business = application.years_in_business
+            profile.verification_status = 'verified'
+            profile.save()
+        
+        # Send notification to supplier
+        NotificationService.create_notification(
+            user=supplier,
+            title="Supplier Application Approved! 🎉",
+            message="Congratulations! Your supplier application has been approved. You can now start adding products.",
+            notification_type='supplier',
+            priority='high',
+            link='/dashboard/supplier/'
+        )
         
         messages.success(request, f'Supplier {supplier.email} approved successfully.')
     
-    return redirect('dashboard:manage_suppliers')
+    return redirect(f"{reverse('dashboard:manage_suppliers')}?pending=true")
 
 
 @login_required
@@ -435,28 +514,44 @@ def approve_supplier_view(request, user_id):
 def reject_supplier_view(request, user_id):
     """Admin reject supplier application"""
     
-    supplier = get_object_or_404(User, id=user_id, role='supplier')
+    from suppliers.models import SupplierApplication
+    from notifications.utils.notification_service import NotificationService
+    
+    supplier = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
         reason = request.POST.get('reason', 'Not specified')
         
-        # Reject by changing role back to customer
-        supplier.role = 'customer'
-        supplier.is_approved_supplier = False
-        supplier.save()
+        # Get the application
+        try:
+            application = SupplierApplication.objects.get(supplier=supplier, status__in=['pending', 'reviewing'])
+            application.status = 'rejected'
+            application.rejection_reason = reason
+            application.reviewed_by = request.user
+            application.reviewed_at = timezone.now()
+            application.save()
+        except SupplierApplication.DoesNotExist:
+            pass
+        
+        # Change user role back to customer if needed
+        if supplier.role == 'supplier':
+            supplier.role = 'customer'
+            supplier.is_approved_supplier = False
+            supplier.save()
         
         # Send rejection notification
-        NotificationManager.send_notification(
+        NotificationService.create_notification(
             user=supplier,
-            title="Supplier Application Rejected",
-            message=f"Your supplier application was rejected. Reason: {reason}",
+            title="Supplier Application Update",
+            message=f"Your supplier application has been reviewed. Unfortunately, it was not approved at this time.\nReason: {reason}",
             notification_type='supplier',
-            priority='high'
+            priority='medium',
+            link='/suppliers/apply/'
         )
         
         messages.success(request, f'Supplier application rejected.')
     
-    return redirect('dashboard:manage_suppliers')
+    return redirect(f"{reverse('dashboard:manage_suppliers')}?pending=true")
 
 
 @login_required
@@ -576,6 +671,5 @@ def dashboard_settings_view(request):
     context = {
         'prefs': prefs,
         'section': 'settings',
-        
     }
     return render(request, 'dashboard/settings.html', context)

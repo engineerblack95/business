@@ -19,6 +19,16 @@ from accounts.models import User
 from notifications.utils.notification_service import NotificationService
 
 
+def get_client_ip(request):
+    """Get client IP address from request"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
 def product_list_view(request):
     """Public product listing with search and filters"""
     
@@ -106,12 +116,16 @@ def product_detail_view(request, slug):
     product.views_count += 1
     product.save()
     
-    # Track view for analytics
+    # FIXED: Ensure session exists before creating ProductViewHistory
+    if not request.session.session_key:
+        request.session.save()
+    
+    # Track view for analytics - with proper session_key
     ProductViewHistory.objects.create(
         product=product,
         user=request.user if request.user.is_authenticated else None,
         session_key=request.session.session_key,
-        ip_address=request.META.get('REMOTE_ADDR', '')
+        ip_address=get_client_ip(request)
     )
     
     # Get stock label based on user role
@@ -173,7 +187,7 @@ def supplier_product_create_view(request):
                 NotificationService.create_notification(
                     user=admin,
                     title="New Product Pending Approval",
-                    message=f"{request.user.business_name|default:request.user.email} has submitted a new product: {product.name}",
+                    message=f"{getattr(request.user, 'business_name', request.user.email)} has submitted a new product: {product.name}",
                     notification_type='product',
                     priority='high',
                     link='/products/admin/approve/'
@@ -332,7 +346,7 @@ def supplier_product_update_view(request, product_id):
                 NotificationService.create_notification(
                     user=admin,
                     title="Product Update Pending Approval",
-                    message=f"{request.user.business_name|default:request.user.email} has updated product: {product.name}",
+                    message=f"{getattr(request.user, 'business_name', request.user.email)} has updated product: {product.name}",
                     notification_type='product',
                     priority='medium',
                     link='/products/admin/approve/'
@@ -369,7 +383,7 @@ def supplier_product_stock_update_view(request, product_id):
                     NotificationService.create_notification(
                         user=admin,
                         title=f"Low Stock Alert: {product.name}",
-                        message=f"Product '{product.name}' from {product.owner.business_name|default:product.owner.email} has only {product.exact_quantity} units remaining.",
+                        message=f"Product '{product.name}' from {getattr(product.owner, 'business_name', product.owner.email)} has only {product.exact_quantity} units remaining.",
                         notification_type='alert',
                         priority='high',
                         link=f'/dashboard/admin/products/'

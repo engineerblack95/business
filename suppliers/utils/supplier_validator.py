@@ -1,6 +1,8 @@
 from decimal import Decimal
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.db.models import Sum, Avg  # <-- ADD THIS IMPORT
+
 
 class SupplierPerformanceCalculator:
     """Calculate supplier performance metrics"""
@@ -16,12 +18,12 @@ class SupplierPerformanceCalculator:
             product__owner=supplier,
             order__payment_status__in=['simulated', 'paid']
         )
-        total_sales = order_items.aggregate(total=models.Sum('final_price'))['total'] or 0
+        total_sales = order_items.aggregate(total=Sum('final_price'))['total'] or Decimal('0.00')
         sales_score = min(40, (float(total_sales) / 1000000) * 10)  # 1M FRW = 10 points
         
         # Rating (30%)
         reviews = ProductReview.objects.filter(product__owner=supplier)
-        avg_rating = reviews.aggregate(avg=models.Avg('rating'))['avg'] or 0
+        avg_rating = reviews.aggregate(avg=Avg('rating'))['avg'] or 0
         rating_score = (avg_rating / 5) * 30
         
         # Response rate (15%)
@@ -62,9 +64,14 @@ class SupplierPerformanceCalculator:
             order__payment_status__in=['simulated', 'paid']
         )
         
+        total_sales = weekly_items.aggregate(total=Sum('final_price'))['total'] or Decimal('0.00')
+        units_sold = weekly_items.aggregate(total=Sum('quantity'))['total'] or 0
+        orders_count = weekly_items.values('order').distinct().count()
+        avg_order_value = total_sales / orders_count if orders_count > 0 else Decimal('0.00')
+        
         return {
-            'total_sales': weekly_items.aggregate(total=models.Sum('final_price'))['total'] or 0,
-            'units_sold': weekly_items.aggregate(total=models.Sum('quantity'))['total'] or 0,
-            'orders_count': weekly_items.values('order').distinct().count(),
-            'avg_order_value': (weekly_items.aggregate(total=models.Sum('final_price'))['total'] or 0) / max(weekly_items.values('order').distinct().count(), 1)
+            'total_sales': total_sales,
+            'units_sold': units_sold,
+            'orders_count': orders_count,
+            'avg_order_value': avg_order_value
         }
