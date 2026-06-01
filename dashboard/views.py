@@ -673,3 +673,87 @@ def dashboard_settings_view(request):
         'section': 'settings',
     }
     return render(request, 'dashboard/settings.html', context)
+
+@login_required
+@role_required(['admin'])
+def reports_view(request):
+    """Generate and view reports"""
+    
+    from datetime import timedelta
+    from django.utils import timezone
+    
+    # Get date range
+    date_range = request.GET.get('range', 'month')
+    
+    # Initialize dates
+    start_date = None
+    end_date = None
+    
+    if date_range == 'today':
+        start_date = timezone.now().date()
+        end_date = start_date
+    elif date_range == 'week':
+        start_date = timezone.now().date() - timedelta(days=7)
+        end_date = timezone.now().date()
+    elif date_range == 'month':
+        start_date = timezone.now().date() - timedelta(days=30)
+        end_date = timezone.now().date()
+    elif date_range == 'year':
+        start_date = timezone.now().date() - timedelta(days=365)
+        end_date = timezone.now().date()
+    elif date_range == 'custom':
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        
+        # Validate that start_date and end_date are provided
+        if start_date_str and end_date_str:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        else:
+            # Default to last 30 days if no dates provided
+            start_date = timezone.now().date() - timedelta(days=30)
+            end_date = timezone.now().date()
+    
+    # Ensure dates are valid
+    if not start_date or not end_date:
+        start_date = timezone.now().date() - timedelta(days=30)
+        end_date = timezone.now().date()
+    
+    # Sales report
+    orders = Order.objects.filter(
+        created_at__date__gte=start_date,
+        created_at__date__lte=end_date,
+        payment_status__in=['simulated', 'paid']
+    )
+    
+    total_revenue = orders.aggregate(total=Sum('grand_total'))['total'] or 0
+    total_orders = orders.count()
+    avg_order_value = total_revenue / total_orders if total_orders > 0 else 0
+    
+    # Top products
+    top_products = Product.objects.annotate(
+        total_sold=Sum('order_items__quantity')
+    ).order_by('-total_sold')[:10]
+    
+    # Top customers
+    top_customers = User.objects.filter(
+        role='customer',
+        orders__payment_status__in=['simulated', 'paid']
+    ).annotate(
+        total_spent=Sum('orders__grand_total'),
+        order_count=Count('orders')
+    ).order_by('-total_spent')[:10]
+    
+    context = {
+        'total_revenue': total_revenue,
+        'total_orders': total_orders,
+        'avg_order_value': avg_order_value,
+        'top_products': top_products,
+        'top_customers': top_customers,
+        'start_date': start_date,
+        'end_date': end_date,
+        'date_range': date_range,
+        'section': 'reports',
+    }
+    return render(request, 'dashboard/reports.html', context)
