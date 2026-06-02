@@ -2,13 +2,17 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class OTPHandler:
-    """Handle OTP generation and sending"""
+    """Handle OTP generation and sending with Render compatibility"""
     
     @staticmethod
     def send_otp_email(user, otp_code, purpose='login'):
-        """Send OTP via email"""
+        """Send OTP via email - with fallback for Render"""
         
         if purpose == 'registration':
             subject = 'Welcome to HerosTechnology - Verify Your Email'
@@ -30,14 +34,45 @@ class OTPHandler:
         html_message = render_to_string(template, context)
         plain_message = strip_tags(html_message)
         
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+        # Check if running on Render
+        on_render = os.environ.get('RENDER_EXTERNAL_HOSTNAME', False)
+        
+        try:
+            # Attempt to send real email
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            
+            # Log success
+            print(f"✅ OTP email sent successfully to {user.email}")
+            return True
+            
+        except Exception as e:
+            # Log the error
+            error_msg = f"❌ Failed to send OTP email to {user.email}: {str(e)}"
+            print(error_msg)
+            logger.error(error_msg)
+            
+            # On Render, print OTP to console for debugging
+            if on_render:
+                print(f"\n{'='*60}")
+                print(f"🔐 DEMO MODE - OTP for {user.email}")
+                print(f"📧 Purpose: {purpose}")
+                print(f"🔑 OTP Code: {otp_code}")
+                print(f"⏰ Valid for: {context['expiry_minutes']} minutes")
+                print(f"{'='*60}\n")
+                
+                # Also try to store OTP in a way that views can access it
+                # This will be picked up by the views.py debug mode
+                return False
+            else:
+                # Local development - re-raise the exception
+                raise e
     
     @staticmethod
     def send_welcome_email(user):
@@ -54,11 +89,28 @@ class OTPHandler:
         html_message = render_to_string(template, context)
         plain_message = strip_tags(html_message)
         
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+        # Check if running on Render
+        on_render = os.environ.get('RENDER_EXTERNAL_HOSTNAME', False)
+        
+        try:
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            print(f"✅ Welcome email sent successfully to {user.email}")
+            return True
+            
+        except Exception as e:
+            error_msg = f"❌ Failed to send welcome email to {user.email}: {str(e)}"
+            print(error_msg)
+            logger.error(error_msg)
+            
+            if on_render:
+                print(f"📝 Welcome email would be sent to: {user.email}")
+                return False
+            else:
+                raise e
