@@ -21,6 +21,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '.onrender.com',  # Allows any Render app
+    'business.onrender.com',
 ]
 
 if RENDER_EXTERNAL_HOSTNAME:
@@ -39,7 +40,6 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_celery_beat',
-    'whitenoise.runserver_nostatic',  # Add this for static files
     
     # Custom apps
     'accounts',
@@ -55,7 +55,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this - IMPORTANT!
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # For static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -87,20 +87,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'heros_technology.wsgi.application'
 
-# Database - Works with both local PostgreSQL and Render PostgreSQL
-# Check if we're on Render (has DATABASE_URL environment variable)
-if os.environ.get('DATABASE_URL'):
-    # Production: Use Render PostgreSQL
+# DATABASE CONFIGURATION - FIXED FOR RENDER
+# Check if DATABASE_URL environment variable exists
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    # Production on Render
     DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True
-        )
+        'default': dj_database_url.parse(DATABASE_URL)
     }
+    # Add additional options for Render
+    DATABASES['default']['CONN_MAX_AGE'] = 600
+    DATABASES['default']['CONN_HEALTH_CHECKS'] = True
+    # For Render free tier - disable SSL requirement
+    if 'sslmode' not in DATABASE_URL:
+        DATABASES['default']['OPTIONS'] = {'sslmode': 'require'}
 else:
-    # Local development: Use your PostgreSQL config
+    # Local development
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -139,8 +142,11 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static'] if os.path.exists(BASE_DIR / 'static') else []
+STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# WhiteNoise configuration for static files
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'
@@ -155,11 +161,12 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Email Configuration - Works on both environments
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp-relay.brevo.com')  # Changed to Brevo
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
 # For local development, use console backend if no SMTP configured
 if DEBUG and not EMAIL_HOST_USER:
@@ -173,7 +180,6 @@ PAYMENT_MODE = config('PAYMENT_MODE', default='simulated')
 
 # Cache Configuration - Works on both environments
 if os.environ.get('REDIS_URL'):
-    # Production: Use Redis if available
     CACHES = {
         'default': {
             'BACKEND': 'django_redis.cache.RedisCache',
@@ -184,7 +190,6 @@ if os.environ.get('REDIS_URL'):
         }
     }
 else:
-    # Local development: Use simple cache
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
