@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_celery_beat',
+    'anymail',  # For better email handling on Render
     
     # Custom apps
     'accounts',
@@ -152,9 +153,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-# ========== EMAIL CONFIGURATION FOR BREVO ==========
-# Priority: 1. Render ENV variables, 2. Local .env, 3. Console backend fallback
-
+# ========== EMAIL CONFIGURATION ==========
 # Get email configuration from environment
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='smtp-relay.brevo.com')
@@ -166,35 +165,32 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 # Check if we're on Render
 on_render = os.environ.get('RENDER_EXTERNAL_HOSTNAME', False)
 
-# Use a proper "From" email address - IMPORTANT for Gmail deliverability
-# Option 1: Use verified Gmail (if you've verified it in Brevo)
-# Option 2: Use Brevo's default but with proper name
+# Use a proper "From" email address
 if EMAIL_HOST_USER:
     DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 else:
     DEFAULT_FROM_EMAIL = 'noreply@heros-technology.com'
 
-# For Gmail deliverability, set a proper sender name
+# Set a proper sender name
 DEFAULT_FROM_EMAIL_NAME = config('DEFAULT_FROM_EMAIL_NAME', default='HerosTechnology')
 
-# If using Gmail as sender, use this format: "HerosTechnology <blacksiteoff@gmail.com>"
+# Format email properly if using Gmail
 if '@gmail.com' in DEFAULT_FROM_EMAIL:
     DEFAULT_FROM_EMAIL = f"{DEFAULT_FROM_EMAIL_NAME} <{DEFAULT_FROM_EMAIL}>"
 
-# Try Brevo API first (better deliverability than SMTP on Render)
+# Try Brevo API first (better deliverability on Render)
 USE_BREVO_API = config('USE_BREVO_API', default=True, cast=bool)
 
 if USE_BREVO_API and not DEBUG:
-    try:
-        # Configure for Brevo API (better than SMTP on Render free tier)
-        INSTALLED_APPS.insert(0, 'anymail')
+    BREVO_API_KEY = config('BREVO_API_KEY', default='')
+    if BREVO_API_KEY:
         EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
         ANYMAIL = {
-            "BREVO_API_KEY": config('BREVO_API_KEY', default=''),
+            "BREVO_API_KEY": BREVO_API_KEY,
         }
         print("✅ Using Brevo API for email delivery")
-    except Exception as e:
-        print(f"⚠️ Brevo API not configured: {e}, falling back to SMTP")
+    else:
+        print("⚠️ Brevo API key not set, falling back to SMTP")
 
 # Fallback to console backend on Render if email not configured
 if on_render and not EMAIL_HOST_USER and not config('BREVO_API_KEY', default=''):
@@ -265,10 +261,108 @@ AIRTEL_CLIENT_ID = os.environ.get('AIRTEL_CLIENT_ID', '')
 AIRTEL_CLIENT_SECRET = os.environ.get('AIRTEL_CLIENT_SECRET', '')
 AIRTEL_API_KEY = os.environ.get('AIRTEL_API_KEY', '')
 
-# Security settings for production
+# ========== PROXY & IP DETECTION SETTINGS (For Render) ==========
+# These are CRITICAL for getting real client IP addresses behind Render's proxy
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Trusted proxies (Render's proxy IPs - allows getting real client IP)
+# This tells Django to trust the X-Forwarded-For header from Render's proxy
+if on_render:
+    # Render uses these headers to forward the real client IP
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+    # Allow any proxy (Render's load balancer)
+    # In production, you can restrict to specific IPs, but this is safe for Render
+    import warnings
+    warnings.filterwarnings('ignore', message="You have asked to set SECURE_PROXY_SSL_HEADER")
+
+# ========== LOGGING CONFIGURATION (For debugging on Render) ==========
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'debug.log',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'accounts': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# Create logs directory if it doesn't exist
+logs_dir = BASE_DIR / 'logs'
+if not logs_dir.exists():
+    logs_dir.mkdir()
+
+# ========== SECURITY SETTINGS FOR PRODUCTION ==========
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# ========== RENDER DEPLOYMENT SPECIFIC ==========
+if on_render:
+    # Ensure HTTPS redirect works on Render
+    SECURE_SSL_REDIRECT = True
+    # Disable HTTPS checks if not needed
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+    # Handle static files on Render
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+    
+    # Media files storage (using local storage on Render)
+    # For production, consider using cloud storage like AWS S3
+    MEDIA_ROOT = BASE_DIR / 'media'
+
+# ========== IP GEOLOCATION CACHE ==========
+# Cache IP geolocation results to avoid rate limiting
+IP_GEOLOCATION_CACHE_TIMEOUT = 86400  # 24 hours
+
+# Print deployment info
+print(f"🚀 Running in {'PRODUCTION' if not DEBUG else 'DEVELOPMENT'} mode")
+print(f"🌍 Site URL: {SITE_URL}")
+print(f"📧 Email backend: {EMAIL_BACKEND}")
+print(f"🔒 SSL Redirect: {SECURE_SSL_REDIRECT if not DEBUG else 'Disabled in development'}")
+
+# Path to the directory containing the .mmdb file
+GEOIP_PATH = BASE_DIR / 'geoip'
+
+# The name of the database file for city lookups
+GEOIP_CITY = 'GeoLite2-City.mmdb'

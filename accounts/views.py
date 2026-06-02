@@ -1,11 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from django.core.mail import send_mail
 from django.conf import settings
-from django.urls import reverse
 from django.core.paginator import Paginator
 from .forms import (
     RegistrationForm, LoginForm, OTPVerificationForm,
@@ -15,12 +13,11 @@ from .models import User, UserLoginHistory
 from .utils.otp_handler import OTPHandler
 from .utils.geolocation import GeoLocationService
 from .utils.device_detector import DeviceDetector
-import uuid
 import os
 
 
 def register_view(request):
-    """User registration view - FIXED for Render"""
+    """User registration view"""
     if request.user.is_authenticated:
         return redirect('dashboard:home')
     
@@ -36,10 +33,9 @@ def register_view(request):
             # Generate OTP
             otp = user.generate_otp()
             
-            # Send OTP with error handling for Render
+            # Send OTP
             email_sent = False
             try:
-                # Try to send email
                 email_sent = OTPHandler.send_otp_email(user, otp, purpose='registration')
             except Exception as e:
                 print(f"Email error: {e}")
@@ -48,10 +44,9 @@ def register_view(request):
             # Store OTP in session for debug mode on Render
             on_render = os.environ.get('RENDER_EXTERNAL_HOSTNAME', False)
             if on_render and not email_sent:
-                # Store OTP in session so user can see it
                 request.session['debug_otp'] = otp
                 request.session['debug_email'] = user.email
-                messages.warning(request, f'[DEMO MODE] Your OTP is: {otp} (Check console logs or use this code)')
+                messages.warning(request, f'[DEMO MODE] Your OTP is: {otp}')
             else:
                 messages.success(request, 'Registration successful! Please verify your email with the OTP sent.')
             
@@ -65,7 +60,7 @@ def register_view(request):
 
 
 def login_view(request):
-    """User login view - FIXED for Render"""
+    """User login view"""
     if request.user.is_authenticated:
         return redirect('dashboard:home')
     
@@ -76,7 +71,6 @@ def login_view(request):
             try:
                 user = User.objects.get(email=email)
                 
-                # Check if user is active
                 if not user.is_active:
                     messages.error(request, 'Your account is disabled.')
                     return redirect('accounts:login')
@@ -84,7 +78,7 @@ def login_view(request):
                 # Generate OTP
                 otp = user.generate_otp()
                 
-                # Send OTP with error handling for Render
+                # Send OTP
                 email_sent = False
                 try:
                     email_sent = OTPHandler.send_otp_email(user, otp, purpose='login')
@@ -99,7 +93,7 @@ def login_view(request):
                 on_render = os.environ.get('RENDER_EXTERNAL_HOSTNAME', False)
                 if on_render and not email_sent:
                     request.session['debug_otp'] = otp
-                    messages.warning(request, f'[DEMO MODE] Your OTP is: {otp} (Use this code to login)')
+                    messages.warning(request, f'[DEMO MODE] Your OTP is: {otp}')
                 else:
                     messages.success(request, f'OTP sent to {email}. Please check your email.')
                     
@@ -114,20 +108,16 @@ def login_view(request):
 
 
 def verify_otp_view(request):
-    """OTP verification view - FIXED with debug OTP support"""
+    """OTP verification view with device and location tracking"""
     
-    # Check if we have pending user ID (registration) or login email
     pending_user_id = request.session.get('pending_user_id')
     login_email = request.session.get('login_email')
-    
-    # Check for debug OTP from session
     debug_otp = request.session.get('debug_otp')
     
     if not pending_user_id and not login_email:
         messages.error(request, 'Session expired. Please try again.')
         return redirect('accounts:login')
     
-    # Get user
     if pending_user_id:
         user = get_object_or_404(User, id=pending_user_id)
     else:
@@ -138,44 +128,43 @@ def verify_otp_view(request):
         if form.is_valid():
             otp = form.cleaned_data['otp']
             
-            # Check against debug OTP first (for Render demo mode)
             on_render = os.environ.get('RENDER_EXTERNAL_HOSTNAME', False)
             is_valid = user.verify_otp(otp)
             
-            # If regular OTP fails but we have debug OTP, check that
             if not is_valid and on_render and debug_otp and otp == debug_otp:
                 is_valid = True
             
             if is_valid:
-                # Log the user in
                 login(request, user)
                 
-                # Record login history
-                ip_address = request.META.get('REMOTE_ADDR')
+                # Get client information
+                ip_address = GeoLocationService.get_client_ip(request)
                 user_agent = request.META.get('HTTP_USER_AGENT', '')
                 
-                # Get geolocation (with error handling)
+                # Get geolocation
                 try:
-                    geo_service = GeoLocationService()
-                    location_data = geo_service.get_location_from_ip(ip_address)
+                    location_data = GeoLocationService.get_location_from_ip(ip_address)
                 except Exception as e:
                     print(f"Geolocation error: {e}")
-                    location_data = {'country': 'Unknown', 'city': 'Unknown', 'lat': None, 'lon': None}
+                    location_data = {
+                        'country': 'Unknown', 'city': 'Unknown', 'region': 'Unknown',
+                        'lat': None, 'lon': None
+                    }
                 
-                # Detect device (with error handling)
+                # Detect device
                 try:
-                    device_detector = DeviceDetector()
-                    device_info = device_detector.detect_device(user_agent)
+                    device_info = DeviceDetector.detect_device(user_agent)
                 except Exception as e:
                     print(f"Device detection error: {e}")
                     device_info = {
-                        'device_type': 'unknown',
-                        'os_type': 'unknown',
-                        'browser': 'Unknown',
-                        'browser_version': 'Unknown'
+                        'device_type': 'unknown', 'device_display': 'Unknown Device',
+                        'os_type': 'unknown', 'os_display': 'Unknown OS',
+                        'browser': 'Unknown', 'browser_version': 'Unknown',
+                        'browser_display': 'Unknown Browser',
+                        'device_brand': 'Unknown', 'device_model': 'Unknown'
                     }
                 
-                # Create login history
+                # Save login history
                 try:
                     UserLoginHistory.objects.create(
                         user=user,
@@ -184,22 +173,27 @@ def verify_otp_view(request):
                         user_agent=user_agent,
                         location_country=location_data.get('country', ''),
                         location_city=location_data.get('city', ''),
+                        location_region=location_data.get('region', ''),
                         location_latitude=location_data.get('lat'),
                         location_longitude=location_data.get('lon'),
                         device_type=device_info.get('device_type', 'unknown'),
+                        device_display=device_info.get('device_display', ''),
+                        device_brand=device_info.get('device_brand', ''),
+                        device_model=device_info.get('device_model', ''),
                         os_type=device_info.get('os_type', 'unknown'),
+                        os_display=device_info.get('os_display', ''),
                         browser=device_info.get('browser', 'Unknown'),
-                        browser_version=device_info.get('browser_version', 'Unknown'),
+                        browser_version=device_info.get('browser_version', ''),
+                        browser_display=device_info.get('browser_display', ''),
                     )
                 except Exception as e:
                     print(f"Error saving login history: {e}")
                 
-                # Clear session data
+                # Clear session
                 request.session.pop('pending_user_id', None)
                 request.session.pop('login_email', None)
                 request.session.pop('debug_otp', None)
                 
-                # Send welcome email for new registrations (with error handling)
                 if pending_user_id:
                     try:
                         OTPHandler.send_welcome_email(user)
@@ -207,8 +201,6 @@ def verify_otp_view(request):
                         print(f"Error sending welcome email: {e}")
                 
                 messages.success(request, f'Welcome back, {user.full_name or user.email}!')
-                
-                # Redirect to appropriate dashboard
                 return redirect(user.get_dashboard_url())
             else:
                 if user.otp_attempts >= 5:
@@ -218,24 +210,18 @@ def verify_otp_view(request):
     else:
         form = OTPVerificationForm()
     
-    # Show debug OTP info if available
-    debug_message = None
-    if debug_otp:
-        debug_message = f"Debug OTP for testing: {debug_otp}"
-    
     context = {
         'form': form,
         'email': user.email,
         'is_registration': bool(pending_user_id),
         'debug_otp': debug_otp,
-        'debug_message': debug_message,
+        'debug_message': f"Debug OTP: {debug_otp}" if debug_otp else None,
     }
-    
     return render(request, 'accounts/verify_otp.html', context)
 
 
 def resend_otp_view(request):
-    """Resend OTP to user - FIXED for Render"""
+    """Resend OTP to user"""
     pending_user_id = request.session.get('pending_user_id')
     login_email = request.session.get('login_email')
     
@@ -251,16 +237,14 @@ def resend_otp_view(request):
     
     try:
         otp = user.generate_otp()
-        
-        # Try to send email, but handle failure gracefully
         email_sent = False
+        
         try:
             email_sent = OTPHandler.send_otp_email(user, otp, purpose=purpose)
         except Exception as e:
             print(f"Email error on resend: {e}")
             email_sent = False
         
-        # Handle Render email issues
         on_render = os.environ.get('RENDER_EXTERNAL_HOSTNAME', False)
         if on_render and not email_sent:
             request.session['debug_otp'] = otp
@@ -277,7 +261,6 @@ def resend_otp_view(request):
 @login_required
 def logout_view(request):
     """User logout view with logging"""
-    # Update logout time in last login history
     if request.user.is_authenticated and request.session.session_key:
         try:
             last_history = UserLoginHistory.objects.filter(
@@ -309,7 +292,6 @@ def profile_view(request):
     else:
         form = ProfileUpdateForm(instance=request.user)
     
-    # Get recent login history
     recent_logins = UserLoginHistory.objects.filter(
         user=request.user
     ).order_by('-login_time')[:10]
@@ -335,10 +317,9 @@ def apply_supplier_view(request):
         form = SupplierApplicationForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             user = form.save(commit=False)
-            user.is_approved_supplier = False  # Pending approval
+            user.is_approved_supplier = False
             user.save()
             
-            # Notify admins about new application
             from dashboard.utils.notifications import NotificationManager
             admins = User.objects.filter(role='admin')
             for admin in admins:
@@ -368,12 +349,10 @@ def login_history_view(request):
     if not request.user.is_authenticated:
         return redirect('accounts:login')
     
-    # Get all login history with pagination
     login_history = UserLoginHistory.objects.filter(
         user=request.user
     ).order_by('-login_time')
     
-    # Add pagination
     paginator = Paginator(login_history, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)

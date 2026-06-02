@@ -157,6 +157,7 @@ class UserLoginHistory(models.Model):
         ('pc', 'PC/Laptop'),
         ('smartphone', 'Smartphone'),
         ('tablet', 'Tablet'),
+        ('bot', 'Bot/Crawler'),
         ('unknown', 'Unknown'),
     ]
     
@@ -166,6 +167,7 @@ class UserLoginHistory(models.Model):
         ('linux', 'Linux'),
         ('android', 'Android'),
         ('ios', 'iOS'),
+        ('chromeos', 'Chrome OS'),
         ('unknown', 'Unknown'),
     ]
     
@@ -184,14 +186,24 @@ class UserLoginHistory(models.Model):
     # Location data
     location_country = models.CharField(max_length=100, blank=True)
     location_city = models.CharField(max_length=100, blank=True)
+    location_region = models.CharField(max_length=100, blank=True)
     location_latitude = models.DecimalField(max_digits=10, decimal_places=7, blank=True, null=True)
     location_longitude = models.DecimalField(max_digits=10, decimal_places=7, blank=True, null=True)
     
-    # Device information
+    # Device information - Enhanced
     device_type = models.CharField(max_length=20, choices=DEVICE_TYPES, default='unknown')
+    device_display = models.CharField(max_length=50, blank=True, default='')  # Human readable device name
+    device_brand = models.CharField(max_length=100, blank=True, default='')   # e.g., Apple, Samsung
+    device_model = models.CharField(max_length=100, blank=True, default='')   # e.g., iPhone 13, Galaxy S21
+    
+    # OS information - Enhanced
     os_type = models.CharField(max_length=20, choices=OS_TYPES, default='unknown')
+    os_display = models.CharField(max_length=100, blank=True, default='')     # Human readable OS name with version
+    
+    # Browser information - Enhanced
     browser = models.CharField(max_length=100, blank=True)
     browser_version = models.CharField(max_length=50, blank=True)
+    browser_display = models.CharField(max_length=100, blank=True, default='') # Human readable browser name
     
     class Meta:
         ordering = ['-login_time']
@@ -200,6 +212,8 @@ class UserLoginHistory(models.Model):
             models.Index(fields=['user', '-login_time']),
             models.Index(fields=['ip_address']),
             models.Index(fields=['login_time']),
+            models.Index(fields=['device_type']),
+            models.Index(fields=['os_type']),
         ]
     
     def __str__(self):
@@ -207,10 +221,12 @@ class UserLoginHistory(models.Model):
     
     def get_location_display(self):
         """Return formatted location string"""
-        if self.location_country:
-            if self.location_city:
-                return f"{self.location_city}, {self.location_country}"
+        if self.location_city and self.location_country:
+            return f"{self.location_city}, {self.location_country}"
+        elif self.location_country:
             return self.location_country
+        elif self.location_region:
+            return self.location_region
         return "Unknown location"
     
     def get_duration(self):
@@ -219,3 +235,69 @@ class UserLoginHistory(models.Model):
             duration = (self.logout_time - self.login_time).total_seconds() / 60
             return round(duration, 2)
         return None
+    
+    def get_device_full_name(self):
+        """Return full device name with brand and model"""
+        if self.device_brand and self.device_model:
+            return f"{self.device_brand} {self.device_model}"
+        elif self.device_display:
+            return self.device_display
+        return self.get_device_type_display()
+    
+    def get_os_full_name(self):
+        """Return full OS name with version"""
+        if self.os_display:
+            return self.os_display
+        return self.get_os_type_display()
+    
+    def get_browser_full_name(self):
+        """Return full browser name with version"""
+        if self.browser_display:
+            if self.browser_version:
+                return f"{self.browser_display} {self.browser_version}"
+            return self.browser_display
+        if self.browser:
+            if self.browser_version:
+                return f"{self.browser} {self.browser_version}"
+            return self.browser
+        return "Unknown browser"
+    
+    def get_device_icon(self):
+        """Return Font Awesome icon class for device type"""
+        icons = {
+            'pc': 'fa-desktop',
+            'smartphone': 'fa-mobile-alt',
+            'tablet': 'fa-tablet-alt',
+            'bot': 'fa-robot',
+            'unknown': 'fa-question-circle'
+        }
+        return icons.get(self.device_type, 'fa-laptop')
+    
+    def get_os_icon(self):
+        """Return Font Awesome icon class for OS type"""
+        icons = {
+            'windows': 'fa-windows',
+            'macos': 'fa-apple',
+            'linux': 'fa-linux',
+            'android': 'fa-android',
+            'ios': 'fa-mobile',
+            'chromeos': 'fa-chrome',
+            'unknown': 'fa-question-circle'
+        }
+        return icons.get(self.os_type, 'fa-microchip')
+    
+    def get_browser_icon(self):
+        """Return Font Awesome icon class for browser"""
+        browser_lower = self.browser.lower()
+        if 'chrome' in browser_lower:
+            return 'fa-chrome'
+        elif 'firefox' in browser_lower:
+            return 'fa-firefox'
+        elif 'safari' in browser_lower:
+            return 'fa-safari'
+        elif 'edge' in browser_lower:
+            return 'fa-edge'
+        elif 'opera' in browser_lower:
+            return 'fa-opera'
+        else:
+            return 'fa-globe'
