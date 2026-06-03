@@ -11,18 +11,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-temporary-key-for-development')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+# Detect if running on Render
+ON_RENDER = os.environ.get('RENDER_EXTERNAL_HOSTNAME', False)
+
+# Set DEBUG based on environment
+DEBUG = not ON_RENDER  # True locally, False on Render
 
 # Get Render URL from environment
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 
 # Allowed hosts for both local and production
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '.onrender.com',
-    'business.onrender.com',
-]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com', 'herostechnology-liyk.onrender.com']
 
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
@@ -40,9 +39,9 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_celery_beat',
-    'anymail',  # For better email handling on Render
-    'cloudinary',  # Cloudinary for image storage
-    'cloudinary_storage',  # Cloudinary storage backend
+    'anymail',
+    'cloudinary',
+    'cloudinary_storage',
     
     # Custom apps
     'accounts',
@@ -162,7 +161,6 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
 }
 
-# Configure Cloudinary if credentials are provided
 if CLOUDINARY_STORAGE['CLOUD_NAME'] and CLOUDINARY_STORAGE['API_KEY'] and CLOUDINARY_STORAGE['API_SECRET']:
     import cloudinary
     import cloudinary.uploader
@@ -175,14 +173,12 @@ if CLOUDINARY_STORAGE['CLOUD_NAME'] and CLOUDINARY_STORAGE['API_KEY'] and CLOUDI
         secure=True
     )
     
-    # Set Cloudinary as default file storage for media files
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
     
     print(f"✅ Cloudinary configured for: {CLOUDINARY_STORAGE['CLOUD_NAME']}")
 else:
     print("⚠️ Cloudinary credentials not found, using local file storage")
 
-# Cloudinary upload options
 CLOUDINARY_UPLOAD_OPTIONS = {
     'folder': 'heros_technology/products/',
     'use_filename': True,
@@ -192,54 +188,60 @@ CLOUDINARY_UPLOAD_OPTIONS = {
     'fetch_format': 'auto',
 }
 
-# ========== EMAIL CONFIGURATION ==========
-# Get email configuration from environment
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp-relay.brevo.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+# ========== EMAIL CONFIGURATION (ENVIRONMENT SPECIFIC) ==========
 
-# Check if we're on Render
-on_render = os.environ.get('RENDER_EXTERNAL_HOSTNAME', False)
-
-# Use a proper "From" email address
-if EMAIL_HOST_USER:
-    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
-else:
-    DEFAULT_FROM_EMAIL = 'noreply@heros-technology.com'
-
-# Set a proper sender name
-DEFAULT_FROM_EMAIL_NAME = config('DEFAULT_FROM_EMAIL_NAME', default='HerosTechnology')
-
-# Format email properly if using Gmail
-if '@gmail.com' in DEFAULT_FROM_EMAIL:
-    DEFAULT_FROM_EMAIL = f"{DEFAULT_FROM_EMAIL_NAME} <{DEFAULT_FROM_EMAIL}>"
-
-# Try Brevo API first (better deliverability on Render)
-USE_BREVO_API = config('USE_BREVO_API', default=True, cast=bool)
-
-if USE_BREVO_API and not DEBUG:
-    BREVO_API_KEY = config('BREVO_API_KEY', default='')
+if ON_RENDER:
+    # ========== RENDER PRODUCTION - Brevo API ==========
+    print("🚀 Configuring email for RENDER PRODUCTION")
+    
+    # Get Brevo API key from environment
+    BREVO_API_KEY = os.environ.get('BREVO_API_KEY') or config('BREVO_API_KEY', default='')
+    
     if BREVO_API_KEY:
-        EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+        # Configure Anymail for Brevo
         ANYMAIL = {
             "BREVO_API_KEY": BREVO_API_KEY,
         }
-        print("✅ Using Brevo API for email delivery")
+        EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+        
+        # Set default from email for production
+        DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='ad4970001@smtp-brevo.com')
+        DEFAULT_FROM_EMAIL_NAME = config('DEFAULT_FROM_EMAIL_NAME', default='HerosTechnology')
+        
+        # Format email properly
+        if DEFAULT_FROM_EMAIL_NAME:
+            DEFAULT_FROM_EMAIL = f"{DEFAULT_FROM_EMAIL_NAME} <{DEFAULT_FROM_EMAIL}>"
+        
+        print(f"✅ Using Brevo API for email delivery")
+        print(f"📧 From: {DEFAULT_FROM_EMAIL}")
     else:
-        print("⚠️ Brevo API key not set, falling back to SMTP")
-
-# Fallback to console backend on Render if email not configured
-if on_render and not EMAIL_HOST_USER and not config('BREVO_API_KEY', default=''):
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    print("⚠️ Using console email backend on Render (emails will appear in logs)")
-
-# For local development, use console backend if no SMTP configured
-if DEBUG and not EMAIL_HOST_USER and not config('BREVO_API_KEY', default=''):
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    print("📧 Using console email backend for development")
+        # Fallback to console if no API key
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        DEFAULT_FROM_EMAIL = 'noreply@heros-technology.com'
+        print("⚠️ No Brevo API key found, using console email backend")
+        
+else:
+    # ========== LOCAL DEVELOPMENT - Gmail SMTP ==========
+    print("📧 Configuring email for LOCAL DEVELOPMENT")
+    
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+    
+    # Use the same email as sender
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+    
+    if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+        print(f"✅ Using Gmail SMTP for local development")
+        print(f"📧 From: {DEFAULT_FROM_EMAIL}")
+    else:
+        # Fallback to console
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        DEFAULT_FROM_EMAIL = 'noreply@localhost.com'
+        print("⚠️ No Gmail credentials found, using console email backend")
 
 # OTP Settings
 OTP_EXPIRY_MINUTES = config('OTP_EXPIRY_MINUTES', default=5, cast=int)
@@ -282,8 +284,8 @@ VAT_RATE = 18
 COMMISSION_RATE = 7
 
 # Site URL
-if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
-    SITE_URL = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}"
+if ON_RENDER:
+    SITE_URL = f"https://{RENDER_EXTERNAL_HOSTNAME}"
 else:
     SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
@@ -300,12 +302,11 @@ AIRTEL_CLIENT_ID = os.environ.get('AIRTEL_CLIENT_ID', '')
 AIRTEL_CLIENT_SECRET = os.environ.get('AIRTEL_CLIENT_SECRET', '')
 AIRTEL_API_KEY = os.environ.get('AIRTEL_API_KEY', '')
 
-# ========== PROXY & IP DETECTION SETTINGS (For Render) ==========
+# ========== PROXY & IP DETECTION SETTINGS ==========
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-if on_render:
+if ON_RENDER:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     import warnings
     warnings.filterwarnings('ignore', message="You have asked to set SECURE_PROXY_SSL_HEADER")
@@ -356,7 +357,7 @@ LOGGING = {
 # Create logs directory if it doesn't exist
 logs_dir = BASE_DIR / 'logs'
 if not logs_dir.exists():
-    logs_dir.mkdir()
+    logs_dir.mkdir(exist_ok=True)
 
 # ========== SECURITY SETTINGS FOR PRODUCTION ==========
 if not DEBUG:
@@ -370,26 +371,25 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
 
 # ========== RENDER DEPLOYMENT SPECIFIC ==========
-if on_render:
+if ON_RENDER:
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     STATIC_ROOT = BASE_DIR / 'staticfiles'
     MEDIA_ROOT = BASE_DIR / 'media'
 
 # ========== IP GEOLOCATION CACHE ==========
-IP_GEOLOCATION_CACHE_TIMEOUT = 86400  # 24 hours
+IP_GEOLOCATION_CACHE_TIMEOUT = 86400
 
 # ========== GEOIP2 SETTINGS ==========
-# Path to the directory containing the .mmdb file
 GEOIP_PATH = BASE_DIR / 'geoip'
-
-# The name of the database file for city lookups
 GEOIP_CITY = 'GeoLite2-City.mmdb'
 
-# Print deployment info
-print(f"🚀 Running in {'PRODUCTION' if not DEBUG else 'DEVELOPMENT'} mode")
+# ========== PRINT DEPLOYMENT INFO ==========
+print(f"\n{'='*50}")
+print(f"🚀 Running in {'PRODUCTION on RENDER' if ON_RENDER else 'DEVELOPMENT on LOCAL'}")
 print(f"🌍 Site URL: {SITE_URL}")
 print(f"📧 Email backend: {EMAIL_BACKEND}")
-print(f"🔒 SSL Redirect: {SECURE_SSL_REDIRECT if not DEBUG else 'Disabled in development'}")
+print(f"🔒 SSL Redirect: {'Enabled' if not DEBUG else 'Disabled'}")
 if CLOUDINARY_STORAGE['CLOUD_NAME']:
     print(f"☁️ Cloudinary configured: {CLOUDINARY_STORAGE['CLOUD_NAME']}")
+print(f"{'='*50}\n")
