@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'django_celery_beat',
     'anymail',  # For better email handling on Render
+    'cloudinary',  # Cloudinary for image storage
+    'cloudinary_storage',  # Cloudinary storage backend
     
     # Custom apps
     'accounts',
@@ -142,7 +144,7 @@ STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files (User uploads)
+# Media files - Cloudinary will handle this
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -152,6 +154,43 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Crispy Forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+# ========== CLOUDINARY CONFIGURATION ==========
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME', default=''),
+    'API_KEY': config('CLOUDINARY_API_KEY', default=''),
+    'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
+}
+
+# Configure Cloudinary if credentials are provided
+if CLOUDINARY_STORAGE['CLOUD_NAME'] and CLOUDINARY_STORAGE['API_KEY'] and CLOUDINARY_STORAGE['API_SECRET']:
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+    
+    cloudinary.config(
+        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+        api_key=CLOUDINARY_STORAGE['API_KEY'],
+        api_secret=CLOUDINARY_STORAGE['API_SECRET'],
+        secure=True
+    )
+    
+    # Set Cloudinary as default file storage for media files
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    
+    print(f"✅ Cloudinary configured for: {CLOUDINARY_STORAGE['CLOUD_NAME']}")
+else:
+    print("⚠️ Cloudinary credentials not found, using local file storage")
+
+# Cloudinary upload options
+CLOUDINARY_UPLOAD_OPTIONS = {
+    'folder': 'heros_technology/products/',
+    'use_filename': True,
+    'unique_filename': True,
+    'overwrite': True,
+    'quality': 'auto:best',
+    'fetch_format': 'auto',
+}
 
 # ========== EMAIL CONFIGURATION ==========
 # Get email configuration from environment
@@ -262,23 +301,16 @@ AIRTEL_CLIENT_SECRET = os.environ.get('AIRTEL_CLIENT_SECRET', '')
 AIRTEL_API_KEY = os.environ.get('AIRTEL_API_KEY', '')
 
 # ========== PROXY & IP DETECTION SETTINGS (For Render) ==========
-# These are CRITICAL for getting real client IP addresses behind Render's proxy
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Trusted proxies (Render's proxy IPs - allows getting real client IP)
-# This tells Django to trust the X-Forwarded-For header from Render's proxy
 if on_render:
-    # Render uses these headers to forward the real client IP
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    
-    # Allow any proxy (Render's load balancer)
-    # In production, you can restrict to specific IPs, but this is safe for Render
     import warnings
     warnings.filterwarnings('ignore', message="You have asked to set SECURE_PROXY_SSL_HEADER")
 
-# ========== LOGGING CONFIGURATION (For debugging on Render) ==========
+# ========== LOGGING CONFIGURATION ==========
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -333,36 +365,31 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
 # ========== RENDER DEPLOYMENT SPECIFIC ==========
 if on_render:
-    # Ensure HTTPS redirect works on Render
     SECURE_SSL_REDIRECT = True
-    # Disable HTTPS checks if not needed
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    
-    # Handle static files on Render
     STATIC_ROOT = BASE_DIR / 'staticfiles'
-    
-    # Media files storage (using local storage on Render)
-    # For production, consider using cloud storage like AWS S3
     MEDIA_ROOT = BASE_DIR / 'media'
 
 # ========== IP GEOLOCATION CACHE ==========
-# Cache IP geolocation results to avoid rate limiting
 IP_GEOLOCATION_CACHE_TIMEOUT = 86400  # 24 hours
+
+# ========== GEOIP2 SETTINGS ==========
+# Path to the directory containing the .mmdb file
+GEOIP_PATH = BASE_DIR / 'geoip'
+
+# The name of the database file for city lookups
+GEOIP_CITY = 'GeoLite2-City.mmdb'
 
 # Print deployment info
 print(f"🚀 Running in {'PRODUCTION' if not DEBUG else 'DEVELOPMENT'} mode")
 print(f"🌍 Site URL: {SITE_URL}")
 print(f"📧 Email backend: {EMAIL_BACKEND}")
 print(f"🔒 SSL Redirect: {SECURE_SSL_REDIRECT if not DEBUG else 'Disabled in development'}")
-
-# Path to the directory containing the .mmdb file
-GEOIP_PATH = BASE_DIR / 'geoip'
-
-# The name of the database file for city lookups
-GEOIP_CITY = 'GeoLite2-City.mmdb'
+if CLOUDINARY_STORAGE['CLOUD_NAME']:
+    print(f"☁️ Cloudinary configured: {CLOUDINARY_STORAGE['CLOUD_NAME']}")

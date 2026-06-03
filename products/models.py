@@ -5,30 +5,7 @@ from django.utils import timezone
 from decimal import Decimal
 import uuid
 import os
-
-
-def product_image_path(instance, filename):
-    """
-    Generate file path for product images
-    Handles both Product (main_image) and ProductImage (additional images)
-    """
-    ext = filename.split('.')[-1]
-    new_filename = f"{uuid.uuid4().hex}.{ext}"
-    
-    # Check if this is a ProductImage (has 'product' attribute)
-    if hasattr(instance, 'product') and instance.product:
-        # ProductImage - additional images
-        product_id = instance.product.id if instance.product.id else 'temp'
-        return os.path.join('products', str(product_id), 'images', new_filename)
-    
-    # Check if this is a Product (has 'id' attribute and is being saved)
-    elif hasattr(instance, 'id') and instance.id:
-        # Product - main image (product already has an ID)
-        return os.path.join('products', str(instance.id), new_filename)
-    
-    # For new Product objects without an ID yet, use a temporary folder
-    else:
-        return os.path.join('products', 'temp', new_filename)
+from cloudinary.models import CloudinaryField  # Add this import
 
 
 class Category(models.Model):
@@ -169,8 +146,14 @@ class Product(models.Model):
     model_number = models.CharField(max_length=100, blank=True)
     warranty_months = models.IntegerField(default=12, validators=[MinValueValidator(0)])
     
-    # Media
-    main_image = models.ImageField(upload_to=product_image_path, blank=True, null=True)
+    # Media - UPDATED to use CloudinaryField
+    main_image = CloudinaryField(
+        'image',
+        folder='heros_technology/products/',
+        blank=True,
+        null=True,
+        transformation={'quality': 'auto', 'fetch_format': 'auto'}
+    )
     images = models.ManyToManyField('ProductImage', blank=True, related_name='product_images')
     
     # SEO & Metadata
@@ -218,16 +201,12 @@ class Product(models.Model):
             self.slug = slugify(f"{self.name}-{uuid.uuid4().hex[:8]}")
         
         # FIXED: Only auto-update status based on stock if status is 'approved' or 'out_of_stock'
-        # This prevents changing status when admin manually sets it to 'approved'
         if self.status == 'approved' and self.exact_quantity == 0:
-            # Only change to out_of_stock if it was approved and has no stock
-            # But preserve if admin explicitly set it
             if not hasattr(self, '_skip_auto_status'):
                 self.status = 'out_of_stock'
         elif self.status == 'out_of_stock' and self.exact_quantity > 0:
             self.status = 'approved'
         
-        # Save the product
         super().save(*args, **kwargs)
     
     def get_stock_label(self, user=None):
@@ -243,7 +222,6 @@ class Product(models.Model):
             elif user.role == 'supplier' and self.owner == user:
                 return f"{self.exact_quantity} units remaining"
         
-        # Customer view
         if self.exact_quantity > 0:
             return "In Stock"
         else:
@@ -284,7 +262,6 @@ class Product(models.Model):
         """Calculate product performance score for ranking"""
         thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
         
-        # Get recent sales (from OrderItem model - will be implemented in orders app)
         try:
             from orders.models import OrderItem
             recent_sales = OrderItem.objects.filter(
@@ -323,9 +300,15 @@ class Product(models.Model):
 
 
 class ProductImage(models.Model):
-    """Additional product images"""
+    """Additional product images - UPDATED to use CloudinaryField"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='additional_images')
-    image = models.ImageField(upload_to=product_image_path)
+    image = CloudinaryField(
+        'image',
+        folder='heros_technology/products/gallery/',
+        blank=True,
+        null=True,
+        transformation={'quality': 'auto', 'fetch_format': 'auto'}
+    )
     alt_text = models.CharField(max_length=200, blank=True)
     order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -359,7 +342,6 @@ class ProductReview(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Update product rating
         from django.db.models import Avg
         avg_rating = ProductReview.objects.filter(
             product=self.product, 

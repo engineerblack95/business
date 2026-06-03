@@ -25,6 +25,7 @@ class ProductForm(forms.ModelForm):
             'brand': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Brand name'}),
             'model_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Model number'}),
             'warranty_months': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'main_image': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),  # Added for Cloudinary
             'tags': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., laptop, gaming, dell'}),
             'meta_title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'SEO title'}),
             'meta_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'SEO description'}),
@@ -36,6 +37,9 @@ class ProductForm(forms.ModelForm):
         self.fields['category'].queryset = Category.objects.filter(is_active=True)
         self.fields['subcategory'].queryset = Category.objects.filter(is_active=True)
         self.fields['subcategory'].required = False
+        # Make main_image not required for updates
+        if self.instance and self.instance.pk:
+            self.fields['main_image'].required = False
     
     def clean_base_price(self):
         base_price = self.cleaned_data.get('base_price')
@@ -131,4 +135,4 @@ class BulkProductUploadForm(forms.Form):
             raise ValidationError('Please upload a CSV file')
         if csv_file.size > 5 * 1024 * 1024:
             raise ValidationError('File size must be less than 5MB')
-        return csv_file  # ← REMOVED THE COMMA HERE!
+        return csv_file  # Fixed: removed trailing comma

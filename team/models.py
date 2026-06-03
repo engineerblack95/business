@@ -3,6 +3,8 @@ from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 import uuid
+from cloudinary.models import CloudinaryField  # Add this import
+
 
 class TeamMember(models.Model):
     """Team members for About page display"""
@@ -35,8 +37,14 @@ class TeamMember(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=20, blank=True)
     
-    # Media
-    profile_image = models.ImageField(upload_to='team/', blank=True, null=True)
+    # Media - UPDATED to use CloudinaryField
+    profile_image = CloudinaryField(
+        'image',
+        folder='heros_technology/team/',
+        blank=True,
+        null=True,
+        transformation={'width': 300, 'height': 300, 'crop': 'fill', 'gravity': 'face', 'quality': 'auto'}
+    )
     
     # Bio
     bio = models.TextField(help_text="Short biography of team member")

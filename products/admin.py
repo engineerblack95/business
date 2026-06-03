@@ -14,11 +14,19 @@ class CategoryAdmin(admin.ModelAdmin):
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 3
+    fields = ['image_preview', 'image', 'alt_text', 'order']
+    readonly_fields = ['image_preview']
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;" />', obj.image.url)
+        return "No Image"
+    image_preview.short_description = 'Preview'
 
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name', 'owner', 'get_stock_display', 'final_price', 'status', 'is_supplier_product', 'sales_count']
+    list_display = ['image_preview', 'name', 'owner', 'get_stock_display', 'final_price', 'status', 'is_supplier_product', 'sales_count']
     list_filter = ['status', 'is_supplier_product', 'category', 'created_at']
     search_fields = ['name', 'description', 'brand', 'owner__email']
     readonly_fields = ['slug', 'vat_amount', 'final_price', 'views_count', 'sales_count', 'rating']
@@ -52,6 +60,12 @@ class ProductAdmin(admin.ModelAdmin):
         }),
     )
     
+    def image_preview(self, obj):
+        if obj.main_image:
+            return format_html('<img src="{}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" />', obj.main_image.url)
+        return "No Image"
+    image_preview.short_description = 'Image'
+    
     def get_stock_display(self, obj):
         if obj.exact_quantity <= obj.low_stock_threshold and obj.exact_quantity > 0:
             color = 'orange'
@@ -59,7 +73,6 @@ class ProductAdmin(admin.ModelAdmin):
             color = 'red'
         else:
             color = 'green'
-        # FIXED: Use format_html correctly - no f-string, pass variables as arguments
         return format_html('<span style="color: {}; font-weight: bold;">{}</span>', color, obj.exact_quantity)
     get_stock_display.short_description = 'Stock'
 
