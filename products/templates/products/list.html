@@ -274,6 +274,7 @@
         padding: 8px 16px;
         background: white;
         font-size: 14px;
+        width: auto;
     }
     
     /* Pagination */
@@ -419,22 +420,12 @@
     
     <!-- Sort Dropdown -->
     <div class="sort-wrapper">
-        <select class="form-select sort-dropdown" style="width: auto;" onchange="window.location.href=this.value">
-            <option value="?sort_by=newest{% for key, value in request.GET.items %}{% if key != 'sort_by' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" {% if sort_by == 'newest' %}selected{% endif %}>
-                🆕 Newest First
-            </option>
-            <option value="?sort_by=price_low{% for key, value in request.GET.items %}{% if key != 'sort_by' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" {% if sort_by == 'price_low' %}selected{% endif %}>
-                💰 Price: Low to High
-            </option>
-            <option value="?sort_by=price_high{% for key, value in request.GET.items %}{% if key != 'sort_by' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" {% if sort_by == 'price_high' %}selected{% endif %}>
-                💰 Price: High to Low
-            </option>
-            <option value="?sort_by=popular{% for key, value in request.GET.items %}{% if key != 'sort_by' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" {% if sort_by == 'popular' %}selected{% endif %}>
-                🔥 Most Popular
-            </option>
-            <option value="?sort_by=rating{% for key, value in request.GET.items %}{% if key != 'sort_by' and key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" {% if sort_by == 'rating' %}selected{% endif %}>
-                ⭐ Highest Rated
-            </option>
+        <select class="form-select sort-dropdown" id="sortSelect">
+            <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>🆕 Newest First</option>
+            <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>💰 Price: Low to High</option>
+            <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>💰 Price: High to Low</option>
+            <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>🔥 Most Popular</option>
+            <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>⭐ Highest Rated</option>
         </select>
     </div>
     
@@ -525,7 +516,7 @@
                 {% if products.number == num %}
                 <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                 {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
-                <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
+                <li class-><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
                 {% endif %}
             {% endfor %}
             
@@ -544,4 +535,55 @@
     </nav>
     {% endif %}
 </div>
+
+<script>
+    // Handle sort dropdown - preserve all existing filter parameters
+    document.getElementById('sortSelect').addEventListener('change', function() {
+        const sortValue = this.value;
+        const currentUrl = new URL(window.location.href);
+        
+        // Get all current URL parameters except 'sort_by' and 'page'
+        const params = new URLSearchParams(window.location.search);
+        
+        // Remove existing sort_by and page parameters
+        params.delete('sort_by');
+        params.delete('page');
+        
+        // Add the new sort_by parameter
+        params.set('sort_by', sortValue);
+        
+        // Build the new URL
+        let newUrl = window.location.pathname + '?' + params.toString();
+        
+        // Redirect to the new URL
+        window.location.href = newUrl;
+    });
+    
+    // Handle filter form submission - preserve sort_by
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        // Get current sort_by value
+        const sortSelect = document.getElementById('sortSelect');
+        if (sortSelect) {
+            // Add sort_by to the form if not already present
+            let sortInput = document.querySelector('input[name="sort_by"]');
+            if (!sortInput) {
+                sortInput = document.createElement('input');
+                sortInput.type = 'hidden';
+                sortInput.name = 'sort_by';
+                this.appendChild(sortInput);
+            }
+            sortInput.value = sortSelect.value;
+        }
+    });
+    
+    // On page load, ensure the sort dropdown shows the current sort value
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentSort = urlParams.get('sort_by') || 'newest';
+        const sortSelect = document.getElementById('sortSelect');
+        if (sortSelect) {
+            sortSelect.value = currentSort;
+        }
+    });
+</script>
 {% endblock %}
