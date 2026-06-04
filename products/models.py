@@ -9,7 +9,7 @@ from cloudinary.models import CloudinaryField
 
 
 class Category(models.Model):
-    """Product categories"""
+    """Product categories with Cloudinary image support"""
     
     CATEGORY_TYPES = [
         ('laptops', 'Laptops'),
@@ -29,7 +29,7 @@ class Category(models.Model):
     description = models.TextField(blank=True)
     icon = models.CharField(max_length=50, blank=True, help_text="Font Awesome icon class")
     
-    # UPDATED: Use CloudinaryField for category images
+    # CloudinaryField for category images - stores in cloud
     image = CloudinaryField(
         'image',
         folder='heros_technology/categories/',
@@ -155,7 +155,7 @@ class Product(models.Model):
     model_number = models.CharField(max_length=100, blank=True)
     warranty_months = models.IntegerField(default=12, validators=[MinValueValidator(0)])
     
-    # Media - CloudinaryField
+    # Media - CloudinaryField for main product image
     main_image = CloudinaryField(
         'image',
         folder='heros_technology/products/',
