@@ -29,6 +29,34 @@ def get_client_ip(request):
     return ip
 
 
+# ========== NEW HOMEPAGE VIEW ==========
+def home_view(request):
+    """Homepage with dynamic categories and featured products"""
+    
+    # Get all active categories, ordered by display order
+    categories = Category.objects.filter(is_active=True).order_by('order', 'name')
+    
+    # Get featured/recent products (approved products, limit to 8)
+    featured_products = Product.objects.filter(
+        status='approved',
+        exact_quantity__gt=0
+    ).order_by('-created_at')[:8]
+    
+    # Get top rated products
+    top_rated = Product.objects.filter(
+        status='approved',
+        exact_quantity__gt=0
+    ).order_by('-rating', '-sales_count')[:4]
+    
+    context = {
+        'categories': categories,
+        'featured_products': featured_products,
+        'top_rated': top_rated,
+    }
+    return render(request, 'home.html', context)
+# ========== END HOMEPAGE VIEW ==========
+
+
 def product_list_view(request):
     """Public product listing with search and filters"""
     

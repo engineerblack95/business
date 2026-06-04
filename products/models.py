@@ -5,7 +5,7 @@ from django.utils import timezone
 from decimal import Decimal
 import uuid
 import os
-from cloudinary.models import CloudinaryField  # Add this import
+from cloudinary.models import CloudinaryField
 
 
 class Category(models.Model):
@@ -28,7 +28,16 @@ class Category(models.Model):
     category_type = models.CharField(max_length=20, choices=CATEGORY_TYPES, default='other')
     description = models.TextField(blank=True)
     icon = models.CharField(max_length=50, blank=True, help_text="Font Awesome icon class")
-    image = models.ImageField(upload_to='categories/', blank=True, null=True)
+    
+    # UPDATED: Use CloudinaryField for category images
+    image = CloudinaryField(
+        'image',
+        folder='heros_technology/categories/',
+        blank=True,
+        null=True,
+        transformation={'width': 300, 'height': 300, 'crop': 'fill', 'quality': 'auto'}
+    )
+    
     is_active = models.BooleanField(default=True)
     order = models.IntegerField(default=0)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories')
@@ -146,7 +155,7 @@ class Product(models.Model):
     model_number = models.CharField(max_length=100, blank=True)
     warranty_months = models.IntegerField(default=12, validators=[MinValueValidator(0)])
     
-    # Media - UPDATED to use CloudinaryField
+    # Media - CloudinaryField
     main_image = CloudinaryField(
         'image',
         folder='heros_technology/products/',
@@ -200,7 +209,7 @@ class Product(models.Model):
             from django.utils.text import slugify
             self.slug = slugify(f"{self.name}-{uuid.uuid4().hex[:8]}")
         
-        # FIXED: Only auto-update status based on stock if status is 'approved' or 'out_of_stock'
+        # Update status based on stock
         if self.status == 'approved' and self.exact_quantity == 0:
             if not hasattr(self, '_skip_auto_status'):
                 self.status = 'out_of_stock'
@@ -210,12 +219,7 @@ class Product(models.Model):
         super().save(*args, **kwargs)
     
     def get_stock_label(self, user=None):
-        """
-        Return stock label based on user role
-        - Customer: "In Stock" or "Out of Stock"
-        - Supplier (owner): Exact quantity
-        - Admin: Exact quantity
-        """
+        """Return stock label based on user role"""
         if user and user.is_authenticated:
             if user.role == 'admin':
                 return f"{self.exact_quantity} units"
@@ -278,10 +282,7 @@ class Product(models.Model):
         return round(score, 2)
     
     def get_owner_name_for_display(self):
-        """
-        CRITICAL: Returns owner name for display
-        - Always returns "HerosTechnology" to hide supplier identity
-        """
+        """Always returns "HerosTechnology" to hide supplier identity"""
         return "HerosTechnology"
     
     def get_commission_amount(self):
@@ -300,7 +301,7 @@ class Product(models.Model):
 
 
 class ProductImage(models.Model):
-    """Additional product images - UPDATED to use CloudinaryField"""
+    """Additional product images - CloudinaryField"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='additional_images')
     image = CloudinaryField(
         'image',

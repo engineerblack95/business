@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.views.generic import TemplateView
+from products.views import home_view  # Import home_view from products.views
 from team.views import about_view 
 
 urlpatterns = [
@@ -13,11 +13,10 @@ urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('suppliers/', include('suppliers.urls')),
     path('team/', include('team.urls')),
-     path('about/', about_view, name='about'),
     path('analytics/', include('analytics.urls')),
     path('notifications/', include('notifications.urls')),
-    path('', TemplateView.as_view(template_name='home.html'), name='home'),
-    path('about/', TemplateView.as_view(template_name='about.html'), name='about'),
+    path('', home_view, name='home'),  # ← Changed from TemplateView to home_view
+    path('about/', about_view, name='about'),
 ]
 
 if settings.DEBUG:
