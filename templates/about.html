@@ -3,6 +3,96 @@
 
 {% block title %}About Us - HerosTechnology{% endblock %}
 
+{% block extra_css %}
+<style>
+    .stats-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .hero-section {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+        color: white;
+        padding: 60px 0;
+        border-radius: 0 0 30px 30px;
+    }
+    
+    /* Team Member Card Styling */
+    .team-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .team-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .team-image {
+        transition: transform 0.3s ease;
+    }
+    .team-card:hover .team-image {
+        transform: scale(1.05);
+    }
+    
+    /* Contact CTA - Using site theme colors */
+    .contact-cta {
+        background: linear-gradient(135deg, var(--secondary-color) 0%, #0e2033 100%);
+        border: none;
+        border-radius: 16px;
+    }
+    .contact-cta .btn-light {
+        background: white;
+        color: var(--secondary-color);
+        border: none;
+        transition: all 0.3s ease;
+    }
+    .contact-cta .btn-light:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .contact-cta .btn-outline-light {
+        border: 2px solid white;
+        transition: all 0.3s ease;
+    }
+    .contact-cta .btn-outline-light:hover {
+        background: white;
+        color: var(--secondary-color);
+        transform: translateY(-3px);
+    }
+    
+    /* Modal Styling */
+    .team-modal .modal-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+        color: white;
+        border: none;
+    }
+    .team-modal .btn-close-white {
+        filter: brightness(0) invert(1);
+    }
+    .team-modal .modal-content {
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .team-modal .team-detail-image {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid var(--secondary-color);
+    }
+    .social-links a {
+        transition: all 0.3s ease;
+    }
+    .social-links a:hover {
+        transform: translateY(-3px);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Hero Section -->
 <section class="hero-section">
@@ -213,20 +303,20 @@
     </div>
 </section>
 
-<!-- Team Section (if team members exist) -->
-{% if leadership or team_members %}
+<!-- Team Section -->
+{% if total_members > 0 %}
 <section class="container mt-5">
     <h2 class="text-center fw-bold mb-4">Meet Our Team</h2>
     
-    <!-- Leadership Team -->
+    <!-- Leadership Team (Featured Members) -->
     {% if leadership %}
-    <div class="row mb-5">
+    <div class="row mb-5 justify-content-center">
         {% for member in leadership %}
         <div class="col-md-4 mb-4">
-            <div class="card text-center h-100 border-0 shadow-sm">
+            <div class="card team-card text-center h-100 border-0 shadow-sm" data-bs-toggle="modal" data-bs-target="#teamModal{{ member.id }}">
                 <div class="card-body">
                     {% if member.profile_image %}
-                    <img src="{{ member.profile_image.url }}" alt="{{ member.full_name }}" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+                    <img src="{{ member.profile_image.url }}" alt="{{ member.full_name }}" class="team-image rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
                     {% else %}
                     <div class="rounded-circle bg-secondary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
                         <i class="fas fa-user-circle fa-4x text-white"></i>
@@ -235,16 +325,163 @@
                     <h5 class="mb-1">{{ member.full_name }}</h5>
                     <p class="text-primary mb-2">{{ member.get_display_position }}</p>
                     <p class="text-muted small">{{ member.bio|truncatechars:100 }}</p>
-                    <div class="mt-3">
-                        {% if member.linkedin %}
-                        <a href="{{ member.linkedin }}" target="_blank" class="text-secondary me-2"><i class="fab fa-linkedin fa-lg"></i></a>
+                    <div class="mt-2">
+                        <span class="badge bg-secondary">Click for details</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Team Member Modal -->
+        <div class="modal fade team-modal" id="teamModal{{ member.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ member.full_name }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        {% if member.profile_image %}
+                        <img src="{{ member.profile_image.url }}" alt="{{ member.full_name }}" class="team-detail-image mb-3">
+                        {% else %}
+                        <div class="rounded-circle bg-secondary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
+                            <i class="fas fa-user-circle fa-5x text-white"></i>
+                        </div>
                         {% endif %}
-                        {% if member.twitter %}
-                        <a href="{{ member.twitter }}" target="_blank" class="text-secondary me-2"><i class="fab fa-twitter fa-lg"></i></a>
+                        <h4>{{ member.full_name }}</h4>
+                        <p class="text-primary mb-3">{{ member.get_display_position }}</p>
+                        <p class="text-muted">{{ member.bio }}</p>
+                        
+                        {% if member.expertise %}
+                        <div class="mt-3">
+                            <strong>Areas of Expertise:</strong>
+                            <p class="text-muted small">{{ member.expertise }}</p>
+                        </div>
                         {% endif %}
-                        {% if member.facebook %}
-                        <a href="{{ member.facebook }}" target="_blank" class="text-secondary"><i class="fab fa-facebook fa-lg"></i></a>
+                        
+                        {% if member.achievements %}
+                        <div class="mt-3">
+                            <strong>Key Achievements:</strong>
+                            <p class="text-muted small">{{ member.achievements }}</p>
+                        </div>
                         {% endif %}
+                        
+                        <div class="social-links mt-4">
+                            {% if member.linkedin %}
+                            <a href="{{ member.linkedin }}" target="_blank" class="btn btn-outline-primary btn-sm mx-1">
+                                <i class="fab fa-linkedin"></i> LinkedIn
+                            </a>
+                            {% endif %}
+                            {% if member.twitter %}
+                            <a href="{{ member.twitter }}" target="_blank" class="btn btn-outline-info btn-sm mx-1">
+                                <i class="fab fa-twitter"></i> Twitter
+                            </a>
+                            {% endif %}
+                            {% if member.facebook %}
+                            <a href="{{ member.facebook }}" target="_blank" class="btn btn-outline-primary btn-sm mx-1">
+                                <i class="fab fa-facebook"></i> Facebook
+                            </a>
+                            {% endif %}
+                            {% if member.instagram %}
+                            <a href="{{ member.instagram }}" target="_blank" class="btn btn-outline-danger btn-sm mx-1">
+                                <i class="fab fa-instagram"></i> Instagram
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Other Team Members -->
+    {% if team_members %}
+    <div class="row justify-content-center">
+        {% for member in team_members %}
+        <div class="col-md-3 col-sm-6 mb-4">
+            <div class="card team-card text-center h-100 border-0 shadow-sm" data-bs-toggle="modal" data-bs-target="#teamModal{{ member.id }}">
+                <div class="card-body">
+                    {% if member.profile_image %}
+                    <img src="{{ member.profile_image.url }}" alt="{{ member.full_name }}" class="team-image rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle bg-secondary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                        <i class="fas fa-user-circle fa-3x text-white"></i>
+                    </div>
+                    {% endif %}
+                    <h6 class="mb-1">{{ member.full_name }}</h6>
+                    <p class="text-muted small mb-2">{{ member.get_display_position }}</p>
+                    <p class="text-muted small">{{ member.bio|truncatechars:80 }}</p>
+                    <div class="mt-2">
+                        <span class="badge bg-secondary">Click for details</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Team Member Modal -->
+        <div class="modal fade team-modal" id="teamModal{{ member.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ member.full_name }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        {% if member.profile_image %}
+                        <img src="{{ member.profile_image.url }}" alt="{{ member.full_name }}" class="team-detail-image mb-3">
+                        {% else %}
+                        <div class="rounded-circle bg-secondary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
+                            <i class="fas fa-user-circle fa-5x text-white"></i>
+                        </div>
+                        {% endif %}
+                        <h4>{{ member.full_name }}</h4>
+                        <p class="text-primary mb-3">{{ member.get_display_position }}</p>
+                        <p class="text-muted">{{ member.bio }}</p>
+                        
+                        {% if member.expertise %}
+                        <div class="mt-3">
+                            <strong>Areas of Expertise:</strong>
+                            <p class="text-muted small">{{ member.expertise }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if member.achievements %}
+                        <div class="mt-3">
+                            <strong>Key Achievements:</strong>
+                            <p class="text-muted small">{{ member.achievements }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="social-links mt-4">
+                            {% if member.linkedin %}
+                            <a href="{{ member.linkedin }}" target="_blank" class="btn btn-outline-primary btn-sm mx-1">
+                                <i class="fab fa-linkedin"></i> LinkedIn
+                            </a>
+                            {% endif %}
+                            {% if member.twitter %}
+                            <a href="{{ member.twitter }}" target="_blank" class="btn btn-outline-info btn-sm mx-1">
+                                <i class="fab fa-twitter"></i> Twitter
+                            </a>
+                            {% endif %}
+                            {% if member.facebook %}
+                            <a href="{{ member.facebook }}" target="_blank" class="btn btn-outline-primary btn-sm mx-1">
+                                <i class="fab fa-facebook"></i> Facebook
+                            </a>
+                            {% endif %}
+                            {% if member.instagram %}
+                            <a href="{{ member.instagram }}" target="_blank" class="btn btn-outline-danger btn-sm mx-1">
+                                <i class="fab fa-instagram"></i> Instagram
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
@@ -255,43 +492,25 @@
 </section>
 {% endif %}
 
-<!-- Contact CTA -->
+<!-- Contact CTA - UPDATED with theme colors (orange gradient instead of blue) -->
 <section class="container mt-5 mb-5">
-    <div class="card bg-primary text-white text-center border-0 rounded-4">
+    <div class="card contact-cta text-white text-center border-0 rounded-4">
         <div class="card-body p-5">
-            <h3>Have Questions?</h3>
+            <i class="fas fa-headset fa-3x mb-3"></i>
+            <h3 class="mb-3">Have Questions?</h3>
             <p class="mb-4">We're here to help! Contact our support team for assistance.</p>
             <div class="d-flex justify-content-center gap-3 flex-wrap">
-                <a href="mailto:support@herostechnology.com" class="btn btn-light">
+                <a href="mailto:support@herostechnology.com" class="btn btn-light btn-lg">
                     <i class="fas fa-envelope"></i> Email Us
                 </a>
-                <a href="tel:+250788123456" class="btn btn-outline-light">
+                <a href="tel:+250788123456" class="btn btn-outline-light btn-lg">
                     <i class="fas fa-phone"></i> Call Us
                 </a>
-                <a href="#" class="btn btn-outline-light">
+                <a href="#" class="btn btn-outline-light btn-lg">
                     <i class="fab fa-whatsapp"></i> WhatsApp
                 </a>
             </div>
         </div>
     </div>
 </section>
-
-<style>
-    .stats-card {
-        background: white;
-        border-radius: 15px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        transition: transform 0.3s ease;
-    }
-    .stats-card:hover {
-        transform: translateY(-5px);
-    }
-    .hero-section {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
-        color: white;
-        padding: 60px 0;
-        border-radius: 0 0 30px 30px;
-    }
-</style>
 {% endblock %}
