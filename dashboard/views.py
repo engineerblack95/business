@@ -450,7 +450,6 @@ def approve_supplier_view(request, user_id):
         supplier.role = 'supplier'
         supplier.is_approved_supplier = True
         supplier.business_name = application.business_name
-        # tax_id is on User model, not on SupplierProfile
         if application.tax_id:
             supplier.tax_id = application.tax_id
         supplier.save()
@@ -462,7 +461,7 @@ def approve_supplier_view(request, user_id):
         application.approved_at = timezone.now()
         application.save()
         
-        # Create or update supplier profile - REMOVED tax_id from here
+        # Create or update supplier profile
         profile, created = SupplierProfile.objects.get_or_create(
             supplier=supplier,
             defaults={
@@ -554,12 +553,16 @@ def reject_supplier_view(request, user_id):
     return redirect(f"{reverse('dashboard:manage_suppliers')}?pending=true")
 
 
+# ========== UPDATED ACTIVITY LOGS VIEW ==========
 @login_required
 @role_required(['admin'])
 def activity_logs_view(request):
-    """View system activity logs"""
+    """View system activity logs - shows login history with device, OS, browser, location"""
     
-    logs = UserActivityLog.objects.select_related('user').order_by('-created_at')
+    from accounts.models import UserLoginHistory
+    
+    # Get all login history with user details
+    logs = UserLoginHistory.objects.select_related('user').order_by('-login_time')
     
     # Apply filters
     activity_type = request.GET.get('type')
@@ -569,6 +572,22 @@ def activity_logs_view(request):
     user_id = request.GET.get('user')
     if user_id:
         logs = logs.filter(user_id=user_id)
+    
+    # Device filter
+    device_type = request.GET.get('device')
+    if device_type:
+        logs = logs.filter(device_type=device_type)
+    
+    # Date range filter
+    date_from = request.GET.get('date_from')
+    if date_from:
+        from datetime import datetime
+        logs = logs.filter(login_time__date__gte=datetime.strptime(date_from, '%Y-%m-%d'))
+    
+    date_to = request.GET.get('date_to')
+    if date_to:
+        from datetime import datetime
+        logs = logs.filter(login_time__date__lte=datetime.strptime(date_to, '%Y-%m-%d'))
     
     paginator = Paginator(logs, 50)
     page_number = request.GET.get('page')
@@ -582,20 +601,29 @@ def activity_logs_view(request):
         'users': users,
         'selected_type': activity_type,
         'selected_user': user_id,
+        'date_from': request.GET.get('date_from', ''),
+        'date_to': request.GET.get('date_to', ''),
+        'device_type': device_type,
         'section': 'logs',
     }
     return render(request, 'dashboard/activity_logs.html', context)
 
 
+# ========== REPORTS VIEW (Single, fixed) ==========
 @login_required
 @role_required(['admin'])
 def reports_view(request):
     """Generate and view reports"""
     
-    from datetime import timedelta
+    from datetime import timedelta, datetime
+    from django.utils import timezone
     
     # Get date range
     date_range = request.GET.get('range', 'month')
+    
+    # Initialize dates
+    start_date = None
+    end_date = None
     
     if date_range == 'today':
         start_date = timezone.now().date()
@@ -609,9 +637,23 @@ def reports_view(request):
     elif date_range == 'year':
         start_date = timezone.now().date() - timedelta(days=365)
         end_date = timezone.now().date()
-    else:
-        start_date = request.GET.get('start_date')
-        end_date = request.GET.get('end_date')
+    elif date_range == 'custom':
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        
+        # Validate that start_date and end_date are provided
+        if start_date_str and end_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        else:
+            # Default to last 30 days if no dates provided
+            start_date = timezone.now().date() - timedelta(days=30)
+            end_date = timezone.now().date()
+    
+    # Ensure dates are valid
+    if not start_date or not end_date:
+        start_date = timezone.now().date() - timedelta(days=30)
+        end_date = timezone.now().date()
     
     # Sales report
     orders = Order.objects.filter(
@@ -673,87 +715,3 @@ def dashboard_settings_view(request):
         'section': 'settings',
     }
     return render(request, 'dashboard/settings.html', context)
-
-@login_required
-@role_required(['admin'])
-def reports_view(request):
-    """Generate and view reports"""
-    
-    from datetime import timedelta
-    from django.utils import timezone
-    
-    # Get date range
-    date_range = request.GET.get('range', 'month')
-    
-    # Initialize dates
-    start_date = None
-    end_date = None
-    
-    if date_range == 'today':
-        start_date = timezone.now().date()
-        end_date = start_date
-    elif date_range == 'week':
-        start_date = timezone.now().date() - timedelta(days=7)
-        end_date = timezone.now().date()
-    elif date_range == 'month':
-        start_date = timezone.now().date() - timedelta(days=30)
-        end_date = timezone.now().date()
-    elif date_range == 'year':
-        start_date = timezone.now().date() - timedelta(days=365)
-        end_date = timezone.now().date()
-    elif date_range == 'custom':
-        start_date_str = request.GET.get('start_date')
-        end_date_str = request.GET.get('end_date')
-        
-        # Validate that start_date and end_date are provided
-        if start_date_str and end_date_str:
-            from datetime import datetime
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        else:
-            # Default to last 30 days if no dates provided
-            start_date = timezone.now().date() - timedelta(days=30)
-            end_date = timezone.now().date()
-    
-    # Ensure dates are valid
-    if not start_date or not end_date:
-        start_date = timezone.now().date() - timedelta(days=30)
-        end_date = timezone.now().date()
-    
-    # Sales report
-    orders = Order.objects.filter(
-        created_at__date__gte=start_date,
-        created_at__date__lte=end_date,
-        payment_status__in=['simulated', 'paid']
-    )
-    
-    total_revenue = orders.aggregate(total=Sum('grand_total'))['total'] or 0
-    total_orders = orders.count()
-    avg_order_value = total_revenue / total_orders if total_orders > 0 else 0
-    
-    # Top products
-    top_products = Product.objects.annotate(
-        total_sold=Sum('order_items__quantity')
-    ).order_by('-total_sold')[:10]
-    
-    # Top customers
-    top_customers = User.objects.filter(
-        role='customer',
-        orders__payment_status__in=['simulated', 'paid']
-    ).annotate(
-        total_spent=Sum('orders__grand_total'),
-        order_count=Count('orders')
-    ).order_by('-total_spent')[:10]
-    
-    context = {
-        'total_revenue': total_revenue,
-        'total_orders': total_orders,
-        'avg_order_value': avg_order_value,
-        'top_products': top_products,
-        'top_customers': top_customers,
-        'start_date': start_date,
-        'end_date': end_date,
-        'date_range': date_range,
-        'section': 'reports',
-    }
-    return render(request, 'dashboard/reports.html', context)

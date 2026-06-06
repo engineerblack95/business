@@ -3,93 +3,342 @@
 
 {% block title %}Activity Logs - HerosTechnology{% endblock %}
 
+{% block extra_css %}
+<style>
+    .log-table {
+        font-size: 0.85rem;
+    }
+    .log-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        white-space: nowrap;
+        padding: 12px 10px;
+    }
+    .log-table td {
+        vertical-align: middle;
+        padding: 12px 10px;
+    }
+    
+    /* Badge Styles */
+    .device-badge, .os-badge, .browser-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .device-pc { background: #e3f2fd; color: #1976d2; }
+    .device-smartphone { background: #e8f5e9; color: #388e3c; }
+    .device-tablet { background: #fff3e0; color: #f57c00; }
+    .device-unknown { background: #f5f5f5; color: #757575; }
+    
+    .os-windows { background: #e8eaf6; color: #3949ab; }
+    .os-macos { background: #fce4ec; color: #c2185b; }
+    .os-linux { background: #fff3e0; color: #f57c00; }
+    .os-android { background: #e8f5e9; color: #43a047; }
+    .os-ios { background: #e3f2fd; color: #1976d2; }
+    .os-unknown { background: #f5f5f5; color: #757575; }
+    
+    .browser-chrome { background: #fff8e1; color: #f9a825; }
+    .browser-firefox { background: #ffebee; color: #e53935; }
+    .browser-safari { background: #e3f2fd; color: #1976d2; }
+    .browser-edge { background: #e8eaf6; color: #3949ab; }
+    .browser-unknown { background: #f5f5f5; color: #757575; }
+    
+    .location-badge {
+        background: #f3e5f5;
+        color: #7b1fa2;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .ip-code {
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 0.75rem;
+        background: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .session-badge {
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+    }
+    .session-active { background: #fff3e0; color: #f57c00; }
+    .session-ended { background: #e8f5e9; color: #388e3c; }
+    
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .stats-card {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    
+    @media (max-width: 1200px) {
+        .log-table {
+            font-size: 0.75rem;
+        }
+        .log-table th, .log-table td {
+            padding: 8px 6px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block dashboard_content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-history"></i> Activity Logs</h2>
+    <div>
+        <span class="badge bg-primary">Total: {{ logs.paginator.count }} sessions</span>
+        <button class="btn btn-secondary btn-sm ms-2" onclick="window.print()">
+            <i class="fas fa-print"></i> Print
+        </button>
+    </div>
 </div>
 
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-users fa-2x text-primary mb-2"></i>
+            <h4 class="mb-0">{{ users|length }}</h4>
+            <small class="text-muted">Total Users</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-laptop fa-2x text-success mb-2"></i>
+            <h4 class="mb-0">{{ logs.paginator.count }}</h4>
+            <small class="text-muted">Total Sessions</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-circle fa-2x text-warning mb-2"></i>
+            <h4 class="mb-0">{{ logs|length }}</h4>
+            <small class="text-muted">Displayed</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-globe fa-2x text-info mb-2"></i>
+            <h4 class="mb-0">{{ logs.values_list|length }}</h4>
+            <small class="text-muted">Unique Locations</small>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get" class="row g-3">
+        <div class="col-md-2">
+            <label class="form-label">Activity Type</label>
+            <select name="type" class="form-select">
+                <option value="">All Types</option>
+                <option value="login" {% if selected_type == 'login' %}selected{% endif %}>Login</option>
+                <option value="logout" {% if selected_type == 'logout' %}selected{% endif %}>Logout</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">User</label>
+            <select name="user" class="form-select">
+                <option value="">All Users</option>
+                {% for user in users %}
+                <option value="{{ user.id }}" {% if selected_user == user.id|stringformat:"s" %}selected{% endif %}>
+                    {{ user.email }} ({{ user.get_role_display }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Device Type</label>
+            <select name="device" class="form-select">
+                <option value="">All Devices</option>
+                <option value="pc">PC/Laptop</option>
+                <option value="smartphone">Smartphone</option>
+                <option value="tablet">Tablet</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Date From</label>
+            <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Date To</label>
+            <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-filter"></i> Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Activity Logs Table -->
 <div class="card">
-    <div class="card-body">
-        <!-- Filters -->
-        <form method="get" class="row mb-4">
-            <div class="col-md-3">
-                <label class="form-label">Activity Type</label>
-                <select name="type" class="form-select">
-                    <option value="">All Types</option>
-                    <option value="login" {% if selected_type == 'login' %}selected{% endif %}>Login</option>
-                    <option value="logout" {% if selected_type == 'logout' %}selected{% endif %}>Logout</option>
-                    <option value="create" {% if selected_type == 'create' %}selected{% endif %}>Create</option>
-                    <option value="update" {% if selected_type == 'update' %}selected{% endif %}>Update</option>
-                    <option value="delete" {% if selected_type == 'delete' %}selected{% endif %}>Delete</option>
-                    <option value="purchase" {% if selected_type == 'purchase' %}selected{% endif %}>Purchase</option>
-                    <option value="payment" {% if selected_type == 'payment' %}selected{% endif %}>Payment</option>
-                    <option value="approval" {% if selected_type == 'approval' %}selected{% endif %}>Approval</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">User</label>
-                <select name="user" class="form-select">
-                    <option value="">All Users</option>
-                    {% for user in users %}
-                    <option value="{{ user.id }}" {% if selected_user == user.id|stringformat:"s" %}selected{% endif %}>
-                        {{ user.email }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">&nbsp;</label>
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-filter"></i> Apply Filters
-                </button>
-            </div>
-        </form>
-        
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover log-table mb-0">
                 <thead>
                     <tr>
-                        <th>Time</th>
-                        <th>User</th>
-                        <th>Activity Type</th>
-                        <th>Description</th>
-                        <th>IP Address</th>
+                        <th><i class="fas fa-calendar-alt"></i> Date & Time</th>
+                        <th><i class="fas fa-user"></i> User</th>
+                        <th><i class="fas fa-mobile-alt"></i> Device</th>
+                        <th><i class="fab fa-windows"></i> OS</th>
+                        <th><i class="fas fa-globe"></i> Browser</th>
+                        <th><i class="fas fa-map-marker-alt"></i> Location</th>
+                        <th><i class="fas fa-network-wired"></i> IP Address</th>
+                        <th><i class="fas fa-hourglass-half"></i> Duration</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for log in logs %}
                     <tr>
-                        <td style="white-space: nowrap;">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
-                        <td>
-                            <a href="{% url 'admin:accounts_user_change' log.user.id %}">
-                                {{ log.user.email }}
-                            </a>
+                        <!-- Date & Time -->
+                        <td style="white-space: nowrap;">
+                            <div class="fw-bold">{{ log.login_time|date:"Y-m-d H:i:s" }}</div>
+                            <small class="text-muted">{{ log.login_time|date:"l" }}</small>
                         </td>
+                        
+                        <!-- User -->
                         <td>
-                            <span class="badge bg-secondary">{{ log.get_activity_type_display }}</span>
+                            <div class="fw-bold">{{ log.user.email }}</div>
+                            <small class="text-muted">{{ log.user.get_role_display }}</small>
                         </td>
-                        <td>{{ log.description|truncatechars:100 }}</td>
-                        <td><code>{{ log.ip_address|default:"-" }}</code></td>
+                        
+                        <!-- Device -->
+                        <td>
+                            <span class="device-badge device-{{ log.device_type|default:'unknown' }}">
+                                <i class="fas fa-{% if log.device_type == 'smartphone' %}mobile-alt{% elif log.device_type == 'tablet' %}tablet-alt{% else %}desktop{% endif %}"></i>
+                                {{ log.get_device_type_display|default:log.device_type|title }}
+                            </span>
+                            {% if log.device_brand %}
+                            <br><small class="text-muted">{{ log.device_brand }} {{ log.device_model }}</small>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Operating System -->
+                        <td>
+                            <span class="os-badge os-{{ log.os_type|default:'unknown' }}">
+                                <i class="fab fa-{% if log.os_type == 'windows' %}windows{% elif log.os_type == 'macos' %}apple{% elif log.os_type == 'linux' %}linux{% elif log.os_type == 'android' %}android{% elif log.os_type == 'ios' %}apple{% else %}windows{% endif %}"></i>
+                                {{ log.get_os_type_display|default:log.os_type|title }}
+                            </span>
+                            {% if log.os_display %}
+                            <br><small class="text-muted">{{ log.os_display }}</small>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Browser -->
+                        <td>
+                            <span class="browser-badge browser-{{ log.browser|default:'unknown'|lower }}">
+                                <i class="fab fa-{% if 'Chrome' in log.browser %}chrome{% elif 'Firefox' in log.browser %}firefox{% elif 'Safari' in log.browser %}safari{% elif 'Edge' in log.browser %}edge{% else %}globe{% endif %}"></i>
+                                {{ log.browser|default:"Unknown" }}
+                            </span>
+                            {% if log.browser_version %}
+                            <br><small class="text-muted">v{{ log.browser_version }}</small>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Location -->
+                        <td>
+                            {% if log.location_country %}
+                            <span class="location-badge">
+                                <i class="fas fa-map-marker-alt"></i>
+                                {{ log.location_city|default:"" }}{% if log.location_city and log.location_country %}, {% endif %}{{ log.location_country }}
+                            </span>
+                            {% if log.location_latitude %}
+                            <br><small class="text-muted">
+                                <i class="fas fa-crosshairs"></i> 
+                                {{ log.location_latitude|floatformat:4 }}, {{ log.location_longitude|floatformat:4 }}
+                            </small>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">
+                                <i class="fas fa-question-circle"></i> Unknown
+                            </span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- IP Address -->
+                        <td>
+                            <code class="ip-code">{{ log.ip_address }}</code>
+                        </td>
+                        
+                        <!-- Session Duration -->
+                        <td>
+                            {% if log.logout_time %}
+                            <span class="session-badge session-ended">
+                                <i class="fas fa-check-circle"></i> 
+                                {{ log.get_duration|default:"N/A" }} min
+                            </span>
+                            <br>
+                            <small class="text-muted">Ended: {{ log.logout_time|date:"H:i:s" }}</small>
+                            {% else %}
+                            <span class="session-badge session-active">
+                                <i class="fas fa-circle"></i> Active
+                            </span>
+                            <br>
+                            <small class="text-muted">Current session</small>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center py-5">
+                        <td colspan="8" class="text-center py-5">
                             <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
                             <p class="mb-0">No activity logs found.</p>
+                            <small class="text-muted">User login activities will appear here once users log in.</small>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        
-        <!-- Pagination -->
-        {% if logs.has_other_pages %}
-        <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
+    </div>
+    
+    <!-- Pagination -->
+    {% if logs.has_other_pages %}
+    <div class="card-footer">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
                 {% if logs.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ logs.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}">Previous</a>
+                    <a class="page-link" href="?page={{ logs.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
                 </li>
                 {% endif %}
                 
@@ -97,18 +346,24 @@
                     {% if logs.number == num %}
                     <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% elif num > logs.number|add:'-3' and num < logs.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}">{{ num }}</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
                     {% endif %}
                 {% endfor %}
                 
                 {% if logs.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ logs.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}">Next</a>
+                    <a class="page-link" href="?page={{ logs.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
                 </li>
                 {% endif %}
             </ul>
         </nav>
-        {% endif %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}
