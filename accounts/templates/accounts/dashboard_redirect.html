@@ -3,20 +3,158 @@
 
 {% block title %}Redirecting... - HerosTechnology{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Responsive Styles */
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 2rem 1rem !important;
+        }
+        
+        h4 {
+            font-size: 1.2rem !important;
+        }
+        
+        .fa-3x {
+            font-size: 2rem !important;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem !important;
+            font-size: 0.85rem !important;
+        }
+        
+        .card-body p {
+            font-size: 0.85rem;
+        }
+    }
+    
+    @media (min-width: 577px) and (max-width: 768px) {
+        .card-body {
+            padding: 2.5rem !important;
+        }
+        
+        h4 {
+            font-size: 1.3rem !important;
+        }
+    }
+    
+    /* Touch-friendly elements */
+    @media (max-width: 768px) {
+        .btn {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+    
+    /* Card hover effect */
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 35px rgba(0,0,0,0.1) !important;
+    }
+    
+    /* Spinner animation */
+    .fa-spinner {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Progress bar animation */
+    .progress {
+        height: 4px;
+        border-radius: 2px;
+        overflow: hidden;
+        background-color: #e9ecef;
+    }
+    
+    .progress-bar {
+        width: 0%;
+        height: 100%;
+        background-color: var(--secondary-color);
+        animation: progress 2s ease-out forwards;
+    }
+    
+    @keyframes progress {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+    }
+    
+    /* Pulsing effect for icon */
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    
+    .pulse-icon {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    /* Responsive container */
+    @media (max-width: 576px) {
+        .container {
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-3 mt-md-5 mb-3 mb-md-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card text-center">
-                <div class="card-body py-5">
-                    <i class="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i>
-                    <h4>Redirecting to your dashboard...</h4>
-                    <p class="text-muted">Please wait while we take you to your personalized dashboard.</p>
+        <div class="col-11 col-sm-10 col-md-8 col-lg-6 col-xl-5">
+            <div class="card shadow-lg border-0 rounded-3 rounded-md-4">
+                <div class="card-body text-center p-4 p-sm-5">
+                    <!-- Spinner Icon with Pulse Effect -->
+                    <div class="pulse-icon">
+                        <i class="fas fa-spinner fa-spin fa-3x" style="color: var(--secondary-color);"></i>
+                    </div>
+                    
+                    <h4 class="mt-3 mb-2 fw-bold">Redirecting to your dashboard...</h4>
+                    
+                    <p class="text-muted small mb-4">
+                        <i class="fas fa-hourglass-half me-1"></i>
+                        Please wait while we take you to your personalized dashboard.
+                    </p>
+                    
+                    <!-- Progress Bar -->
+                    <div class="progress mb-4">
+                        <div class="progress-bar"></div>
+                    </div>
+                    
+                    <!-- Manual Redirect Button -->
                     <div class="mt-3">
                         <a href="{% url 'dashboard:home' %}" class="btn btn-primary">
-                            <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                            <i class="fas fa-tachometer-alt me-2"></i> Go to Dashboard Now
                         </a>
                     </div>
+                    
+                    <!-- Countdown Timer (optional) -->
+                    <p class="text-muted small mt-3">
+                        <span id="countdown">2</span> seconds remaining...
+                    </p>
                 </div>
             </div>
         </div>
@@ -24,9 +162,96 @@
 </div>
 
 <script>
-    // Auto-redirect after 2 seconds
-    setTimeout(function() {
-        window.location.href = "{% url 'dashboard:home' %}";
-    }, 2000);
+    // Auto-redirect with countdown
+    (function() {
+        let seconds = 2;
+        const countdownElement = document.getElementById('countdown');
+        const redirectUrl = "{% url 'dashboard:home' %}";
+        
+        // Update countdown every second
+        const countdownInterval = setInterval(function() {
+            seconds--;
+            if (countdownElement) {
+                countdownElement.textContent = seconds;
+            }
+            
+            if (seconds <= 0) {
+                clearInterval(countdownInterval);
+                window.location.href = redirectUrl;
+            }
+        }, 1000);
+        
+        // Fallback: Force redirect after 3 seconds (in case countdown fails)
+        setTimeout(function() {
+            if (seconds > 0) {
+                clearInterval(countdownInterval);
+                window.location.href = redirectUrl;
+            }
+        }, 3000);
+        
+        // Optional: Add loading animation effect
+        const card = document.querySelector('.card');
+        if (card) {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100);
+        }
+    })();
 </script>
+
+<!-- Extra responsiveness for very small devices -->
+<style>
+    @media (max-width: 380px) {
+        .card-body {
+            padding: 1.5rem 1rem !important;
+        }
+        
+        h4 {
+            font-size: 1rem !important;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+        
+        .fa-3x {
+            font-size: 1.8rem !important;
+        }
+        
+        .text-muted.small {
+            font-size: 0.7rem;
+        }
+    }
+    
+    /* Better touch target for button */
+    .btn {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:active {
+        transform: scale(0.97);
+    }
+    
+    /* Prevent FOUC (Flash of Unstyled Content) */
+    .card {
+        opacity: 0;
+        animation: fadeIn 0.3s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
 {% endblock %}

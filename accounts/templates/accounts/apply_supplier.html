@@ -29,55 +29,215 @@
         font-weight: 600;
         margin-bottom: 0.5rem;
     }
+    
+    /* Responsive Styles */
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 1.25rem !important;
+        }
+        
+        .card-header {
+            padding: 1rem !important;
+        }
+        
+        .card-header h3 {
+            font-size: 1.3rem;
+        }
+        
+        .card-header p {
+            font-size: 0.8rem;
+        }
+        
+        h4 {
+            font-size: 1.1rem;
+        }
+        
+        .form-control, .form-select {
+            font-size: 16px;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .btn-lg {
+            padding: 0.625rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .alert {
+            font-size: 0.8rem;
+            padding: 0.75rem;
+        }
+        
+        .document-upload {
+            padding: 10px;
+        }
+        
+        .document-upload i {
+            font-size: 1.5rem !important;
+        }
+        
+        .document-upload div {
+            font-size: 0.8rem;
+        }
+    }
+    
+    @media (min-width: 577px) and (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        
+        h4 {
+            font-size: 1.2rem;
+        }
+    }
+    
+    @media (min-width: 769px) and (max-width: 992px) {
+        .card-body {
+            padding: 2rem !important;
+        }
+    }
+    
+    /* Touch-friendly elements */
+    @media (max-width: 768px) {
+        button, .btn {
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        input, select, textarea {
+            min-height: 44px;
+        }
+        
+        .document-upload {
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+    }
+    
+    /* iOS input zoom prevention */
+    @media (max-width: 768px) {
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+    }
+    
+    /* Card hover effect */
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 35px rgba(0,0,0,0.1) !important;
+    }
+    
+    /* Better spacing for checkboxes */
+    .form-check-input {
+        width: 1.1em;
+        height: 1.1em;
+        margin-top: 0.2em;
+        cursor: pointer;
+    }
+    
+    .form-check-label {
+        cursor: pointer;
+    }
+    
+    /* Responsive grid adjustments */
+    @media (max-width: 576px) {
+        .row > [class*="col-"] {
+            margin-bottom: 0.5rem;
+        }
+    }
+    
+    /* Alert responsive */
+    .alert {
+        border-radius: 12px;
+    }
+    
+    /* Progress indication */
+    .btn-primary:active {
+        transform: scale(0.98);
+    }
+    
+    /* Loading state */
+    .btn-primary.btn-loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+    
+    .btn-primary.btn-loading i {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Multi-select styling */
+    select[multiple] {
+        min-height: 120px;
+    }
+    
+    @media (max-width: 576px) {
+        select[multiple] {
+            min-height: 100px;
+            font-size: 14px;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-5 mb-5">
+<div class="container mt-3 mt-md-5 mb-3 mb-md-5">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-header bg-primary text-white rounded-top-4">
-                    <h3 class="mb-0"><i class="fas fa-store"></i> Supplier Application</h3>
-                    <p class="mb-0">Join our marketplace and grow your business</p>
+        <div class="col-11 col-sm-10 col-md-11 col-lg-10 col-xl-9">
+            <div class="card shadow-lg border-0 rounded-3 rounded-md-4">
+                <div class="card-header bg-primary text-white rounded-top-3 rounded-top-md-4">
+                    <h3 class="mb-0 fs-4 fs-md-3"><i class="fas fa-store"></i> Supplier Application</h3>
+                    <p class="mb-0 small">Join our marketplace and grow your business</p>
                 </div>
-                <div class="card-body p-5">
+                <div class="card-body p-3 p-sm-4 p-md-5">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> 
                         <strong>Important Information:</strong> Please ensure all documents are clear and up-to-date. 
                         Applications are typically reviewed within 2-3 business days.
                     </div>
                     
-                    <form method="post" enctype="multipart/form-data" novalidate>
+                    <form method="post" enctype="multipart/form-data" novalidate id="supplierForm">
                         {% csrf_token %}
                         
                         <!-- Business Information -->
-                        <h4 class="mb-3"><i class="fas fa-building"></i> Business Information</h4>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label required-field">Business Name</label>
+                        <h4 class="mb-2 mb-md-3"><i class="fas fa-building"></i> Business Information</h4>
+                        <div class="row g-2 g-md-3">
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label required-field small">Business Name</label>
                                 {{ form.business_name }}
                                 {% if form.business_name.errors %}
                                     <div class="text-danger small mt-1">{{ form.business_name.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Business Type</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label small">Business Type</label>
                                 {{ form.business_type }}
                                 {% if form.business_type.errors %}
                                     <div class="text-danger small mt-1">{{ form.business_type.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Tax ID (TIN)</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label small">Tax ID (TIN)</label>
                                 {{ form.tax_id }}
-                                <small class="text-muted d-block">Optional but recommended</small>
+                                <small class="text-muted d-block small">Optional but recommended</small>
                                 {% if form.tax_id.errors %}
                                     <div class="text-danger small mt-1">{{ form.tax_id.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Registration Number</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label small">Registration Number</label>
                                 {{ form.registration_number }}
                                 {% if form.registration_number.errors %}
                                     <div class="text-danger small mt-1">{{ form.registration_number.errors.0 }}</div>
@@ -86,119 +246,119 @@
                         </div>
                         
                         <!-- Contact Information -->
-                        <h4 class="mb-3 mt-4"><i class="fas fa-phone-alt"></i> Contact Information</h4>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label required-field">Business Phone</label>
+                        <h4 class="mb-2 mb-md-3 mt-3 mt-md-4"><i class="fas fa-phone-alt"></i> Contact Information</h4>
+                        <div class="row g-2 g-md-3">
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label required-field small">Business Phone</label>
                                 {{ form.business_phone }}
                                 {% if form.business_phone.errors %}
                                     <div class="text-danger small mt-1">{{ form.business_phone.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label required-field">Business Email</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label required-field small">Business Email</label>
                                 {{ form.business_email }}
                                 {% if form.business_email.errors %}
                                     <div class="text-danger small mt-1">{{ form.business_email.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-12 mb-3">
-                                <label class="form-label required-field">Business Address</label>
+                            <div class="col-12 mb-2 mb-md-3">
+                                <label class="form-label required-field small">Business Address</label>
                                 {{ form.business_address }}
                                 {% if form.business_address.errors %}
                                     <div class="text-danger small mt-1">{{ form.business_address.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">City</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label small">City</label>
                                 {{ form.business_city }}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Country</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label small">Country</label>
                                 {{ form.business_country }}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Website</label>
+                            <div class="col-12 mb-2 mb-md-3">
+                                <label class="form-label small">Website</label>
                                 {{ form.website }}
                             </div>
                         </div>
                         
                         <!-- Business Details -->
-                        <h4 class="mb-3 mt-4"><i class="fas fa-chart-line"></i> Business Details</h4>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Years in Business</label>
+                        <h4 class="mb-2 mb-md-3 mt-3 mt-md-4"><i class="fas fa-chart-line"></i> Business Details</h4>
+                        <div class="row g-2 g-md-3">
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label small">Years in Business</label>
                                 {{ form.years_in_business }}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Est. Monthly Volume (FRW)</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label small">Est. Monthly Volume (FRW)</label>
                                 {{ form.estimated_monthly_volume }}
                             </div>
-                            <div class="col-12 mb-3">
-                                <label class="form-label">Interested Categories</label>
+                            <div class="col-12 mb-2 mb-md-3">
+                                <label class="form-label small">Interested Categories</label>
                                 {{ form.interested_categories }}
-                                <small class="text-muted d-block">Hold Ctrl (Windows) or Cmd (Mac) to select multiple</small>
+                                <small class="text-muted d-block small">Hold Ctrl (Windows) or Cmd (Mac) to select multiple</small>
                                 {% if form.interested_categories.errors %}
                                     <div class="text-danger small mt-1">{{ form.interested_categories.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-12 mb-3">
-                                <label class="form-label">Additional Notes</label>
+                            <div class="col-12 mb-2 mb-md-3">
+                                <label class="form-label small">Additional Notes</label>
                                 {{ form.notes }}
                             </div>
                         </div>
                         
                         <!-- Documents -->
-                        <h4 class="mb-3 mt-4"><i class="fas fa-file-alt"></i> Required Documents</h4>
-                        <div class="alert alert-warning">
+                        <h4 class="mb-2 mb-md-3 mt-3 mt-md-4"><i class="fas fa-file-alt"></i> Required Documents</h4>
+                        <div class="alert alert-warning small">
                             <i class="fas fa-exclamation-triangle"></i> Please upload clear, legible copies (PDF, JPG, PNG - max 10MB each)
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label required-field">Business License/Certificate</label>
+                        <div class="row g-2 g-md-3">
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label required-field small">Business License/Certificate</label>
                                 <div class="document-upload">
                                     <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
                                     {{ form.business_license }}
-                                    <small class="text-muted d-block">Click to upload or drag and drop</small>
+                                    <small class="text-muted d-block small">Click to upload or drag and drop</small>
                                 </div>
                                 {% if form.business_license.errors %}
                                     <div class="text-danger small mt-1">{{ form.business_license.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label required-field">Government ID (Passport/National ID)</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label required-field small">Government ID (Passport/National ID)</label>
                                 <div class="document-upload">
                                     <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
                                     {{ form.id_document }}
-                                    <small class="text-muted d-block">Click to upload or drag and drop</small>
+                                    <small class="text-muted d-block small">Click to upload or drag and drop</small>
                                 </div>
                                 {% if form.id_document.errors %}
                                     <div class="text-danger small mt-1">{{ form.id_document.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Tax Clearance Certificate</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label small">Tax Clearance Certificate</label>
                                 <div class="document-upload">
                                     <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
                                     {{ form.tax_clearance }}
-                                    <small class="text-muted d-block">Optional</small>
+                                    <small class="text-muted d-block small">Optional</small>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Bank Statement (for payouts)</label>
+                            <div class="col-12 col-md-6 mb-2 mb-md-3">
+                                <label class="form-label small">Bank Statement (for payouts)</label>
                                 <div class="document-upload">
                                     <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
                                     {{ form.bank_statement }}
-                                    <small class="text-muted d-block">Recommended for faster payouts</small>
+                                    <small class="text-muted d-block small">Recommended for faster payouts</small>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Terms -->
-                        <div class="form-check mb-4 mt-4">
+                        <div class="form-check mb-3 mb-md-4 mt-3 mt-md-4">
                             {{ form.terms_agreed }}
-                            <label class="form-check-label" for="id_terms_agreed">
+                            <label class="form-check-label small" for="id_terms_agreed">
                                 I confirm that all information provided is accurate and I agree to the 
                                 <a href="#" target="_blank">Supplier Terms and Conditions</a>
                             </label>
@@ -208,7 +368,7 @@
                         </div>
                         
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
                                 <i class="fas fa-paper-plane"></i> Submit Application
                             </button>
                             <a href="{% url 'dashboard:customer' %}" class="btn btn-outline-secondary">
@@ -223,7 +383,7 @@
 </div>
 
 <script>
-// File upload preview enhancement
+// File upload preview enhancement with better mobile support
 document.querySelectorAll('.document-upload input[type="file"]').forEach(input => {
     input.addEventListener('change', function() {
         const fileName = this.files[0]?.name;
@@ -233,12 +393,55 @@ document.querySelectorAll('.document-upload input[type="file"]').forEach(input =
             const originalInput = this.cloneNode(true);
             originalInput.addEventListener('change', arguments.callee);
             
+            const fileSize = this.files[0]?.size;
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            
+            if (fileSize > maxSize) {
+                alert('File size exceeds 10MB limit. Please compress your file.');
+                this.value = '';
+                return;
+            }
+            
             parentDiv.innerHTML = `<i class="fas fa-file-alt fa-2x text-success mb-2"></i>
-                                    <div><strong>${fileName}</strong></div>
-                                    <small class="text-muted">Click to change file</small>`;
+                                    <div><strong class="small">${fileName.length > 30 ? fileName.substring(0, 27) + '...' : fileName}</strong></div>
+                                    <small class="text-muted small">Click to change file</small>`;
             parentDiv.appendChild(originalInput);
         }
     });
 });
+
+// Form submission loading state
+document.getElementById('supplierForm')?.addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.classList.add('btn-loading');
+        submitBtn.disabled = true;
+        const originalHtml = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner me-2"></i>Submitting Application...';
+        
+        // Re-enable after 30 seconds (in case something goes wrong)
+        setTimeout(function() {
+            if (submitBtn.disabled) {
+                submitBtn.classList.remove('btn-loading');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalHtml;
+            }
+        }, 30000);
+    }
+});
+
+// Mobile-friendly touch handling
+if (window.innerWidth <= 768) {
+    document.querySelectorAll('.document-upload').forEach(el => {
+        el.addEventListener('touchstart', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        el.addEventListener('touchend', function() {
+            setTimeout(() => {
+                this.style.backgroundColor = '';
+            }, 200);
+        });
+    });
+}
 </script>
 {% endblock %}

@@ -4,39 +4,40 @@
 {% block title %}Login - HerosTechnology{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-3 mt-md-5 mb-3 mb-md-5">
     <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-microchip fa-3x" style="color: var(--secondary-color);"></i>
-                        <h2 class="mt-3 fw-bold">Welcome Back!</h2>
-                        <p class="text-muted">Login to your HerosTechnology account</p>
+        <div class="col-11 col-sm-10 col-md-8 col-lg-6 col-xl-5">
+            <div class="card shadow-lg border-0 rounded-3 rounded-md-4">
+                <div class="card-body p-3 p-sm-4 p-md-5">
+                    <div class="text-center mb-3 mb-md-4">
+                        <i class="fas fa-microchip fa-2x fa-md-3x" style="color: var(--secondary-color);"></i>
+                        <h2 class="mt-2 mt-md-3 fw-bold fs-2 fs-md-1">Welcome Back!</h2>
+                        <p class="text-muted small">Login to your HerosTechnology account</p>
                     </div>
                     
                     <form method="post" novalidate>
                         {% csrf_token %}
                         
-                        <div class="mb-3">
-                            <label for="id_email" class="form-label fw-semibold">Email Address</label>
+                        <div class="mb-3 mb-md-4">
+                            <label for="id_email" class="form-label fw-semibold small">Email Address</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light">
                                     <i class="fas fa-envelope text-muted"></i>
                                 </span>
                                 <input type="email" name="email" id="id_email" class="form-control" placeholder="Enter your email" required>
                             </div>
+                            <div class="invalid-feedback" id="emailFeedback"></div>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                        <button type="submit" class="btn btn-primary w-100 py-2 py-md-3 fw-semibold">
                             <i class="fas fa-paper-plane me-2"></i>Send OTP
                         </button>
                     </form>
                     
-                    <hr class="my-4">
+                    <hr class="my-3 my-md-4">
                     
                     <div class="text-center">
-                        <p class="text-muted mb-0">
+                        <p class="text-muted mb-0 small">
                             Don't have an account? 
                             <a href="{% url 'accounts:register' %}" class="text-decoration-none fw-semibold" style="color: var(--secondary-color);">
                                 Register here
@@ -48,4 +49,215 @@
         </div>
     </div>
 </div>
+
+<!-- Responsive CSS -->
+<style>
+    /* Mobile-first responsive adjustments */
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 1.25rem !important;
+        }
+        
+        .input-group-text {
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .form-control {
+            font-size: 16px; /* Prevents zoom on iOS */
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .btn-primary {
+            padding: 0.625rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .form-label {
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .text-muted.small {
+            font-size: 0.75rem;
+        }
+    }
+    
+    @media (min-width: 577px) and (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        
+        .form-control {
+            padding: 0.6rem 0.85rem;
+        }
+    }
+    
+    @media (min-width: 769px) and (max-width: 992px) {
+        .card-body {
+            padding: 2rem !important;
+        }
+    }
+    
+    /* Touch-friendly elements */
+    .btn-primary {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .btn-primary:active {
+        transform: scale(0.98);
+    }
+    
+    /* Ensure touch targets are at least 44px on mobile */
+    @media (max-width: 768px) {
+        .btn-primary {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        a {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        /* Links without button class */
+        a:not(.btn) {
+            min-height: auto;
+            display: inline;
+        }
+        
+        .input-group-text {
+            min-width: 44px;
+            justify-content: center;
+        }
+        
+        input, select {
+            min-height: 44px;
+        }
+    }
+    
+    /* Fix for iOS input zoom */
+    @media (max-width: 768px) {
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+    }
+    
+    /* Card hover effect */
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 35px rgba(0,0,0,0.1) !important;
+    }
+    
+    /* Responsive icon sizing */
+    @media (max-width: 576px) {
+        .fa-3x {
+            font-size: 2rem !important;
+        }
+        
+        h2 {
+            font-size: 1.5rem !important;
+        }
+    }
+    
+    /* Loading state for button */
+    .btn-primary.btn-loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+    
+    .btn-primary.btn-loading i {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Form validation styles */
+    .form-control:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 0.2rem rgba(230,126,34,0.25);
+    }
+    
+    .form-control.is-invalid:focus {
+        box-shadow: 0 0 0 0.2rem rgba(220,53,69,0.25);
+    }
+    
+    /* Better spacing for larger screens */
+    @media (min-width: 1200px) {
+        .col-xl-5 {
+            flex: 0 0 auto;
+            width: 41.66666667%;
+        }
+    }
+</style>
+
+<script>
+    // Form validation and loading state
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const emailInput = document.getElementById('id_email');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        // Email validation
+        if (emailInput) {
+            emailInput.addEventListener('input', function() {
+                const email = this.value;
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const feedback = document.getElementById('emailFeedback');
+                
+                if (email && !emailRegex.test(email)) {
+                    this.classList.add('is-invalid');
+                    if (feedback) feedback.textContent = 'Please enter a valid email address.';
+                } else if (email) {
+                    this.classList.remove('is-invalid');
+                    if (feedback) feedback.textContent = '';
+                } else {
+                    this.classList.remove('is-invalid');
+                    if (feedback) feedback.textContent = '';
+                }
+            });
+        }
+        
+        // Add loading state on form submit
+        form.addEventListener('submit', function(e) {
+            if (emailInput && !emailInput.value.trim()) {
+                e.preventDefault();
+                emailInput.classList.add('is-invalid');
+                const feedback = document.getElementById('emailFeedback');
+                if (feedback) feedback.textContent = 'Email address is required.';
+                return;
+            }
+            
+            if (emailInput && emailInput.classList.contains('is-invalid')) {
+                e.preventDefault();
+                return;
+            }
+            
+            // Add loading state
+            submitBtn.classList.add('btn-loading');
+            submitBtn.disabled = true;
+            const originalHtml = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner me-2"></i>Sending OTP...';
+            
+            // Re-enable after 30 seconds (in case something goes wrong)
+            setTimeout(function() {
+                if (submitBtn.disabled) {
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalHtml;
+                }
+            }, 30000);
+        });
+    });
+</script>
 {% endblock %}
