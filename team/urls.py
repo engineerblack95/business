@@ -7,6 +7,9 @@ urlpatterns = [
     # Public
     path('about/', views.about_view, name='about'),
     
+    # Team Dashboard (MISSING - ADD THIS)
+    path('dashboard/', views.team_dashboard_view, name='dashboard'),
+    
     # Admin team management
     path('manage/', views.manage_team_view, name='manage_team'),
     path('edit/<uuid:member_id>/', views.edit_team_member_view, name='edit_team_member'),

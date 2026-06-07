@@ -1,23 +1,25 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
+from django.contrib import messages
 from .models import TeamMember, TeamTask, TeamActivity
+from accounts.models import User
 
 
 @admin.register(TeamMember)
 class TeamMemberAdmin(admin.ModelAdmin):
     list_display = [
         'full_name', 'position_display', 'email', 
-        'display_order', 'is_active', 'featured', 'profile_preview'
+        'display_order', 'is_active', 'featured', 'profile_preview', 'user_link'
     ]
     list_filter = ['position', 'is_active', 'featured', 'joined_at']
-    search_fields = ['full_name', 'email', 'bio']
+    search_fields = ['full_name', 'email', 'bio', 'user__email']
     list_editable = ['display_order', 'is_active', 'featured']
     readonly_fields = ['tasks_completed', 'customer_satisfaction', 'created_at', 'updated_at']
     
     fieldsets = (
         ('Personal Information', {
-            'fields': ('full_name', 'position', 'custom_position', 'email', 'phone', 'profile_image')
+            'fields': ('user', 'full_name', 'position', 'custom_position', 'email', 'phone', 'profile_image')
         }),
         ('Biography', {
             'fields': ('bio', 'expertise', 'achievements')
@@ -45,9 +47,56 @@ class TeamMemberAdmin(admin.ModelAdmin):
     def profile_preview(self, obj):
         if obj.profile_image:
             return format_html('<img src="{}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" />', obj.profile_image.url)
-        # FIXED: Removed format_html since there are no placeholders
         return '<div style="width: 50px; height: 50px; border-radius: 50%; background-color: #6c757d; display: flex; align-items: center; justify-content: center;"><span style="color: white;">📷</span></div>'
     profile_preview.short_description = 'Photo'
+    
+    def user_link(self, obj):
+        if obj.user:
+            url = reverse('admin:accounts_user_change', args=[obj.user.id])
+            return format_html('<a href="{}">View User Account</a>', url)
+        return '<span style="color: #6c757d;">No linked user</span>'
+    user_link.short_description = 'Account'
+    
+    def save_model(self, request, obj, form, change):
+        """Override save to handle User account creation/update"""
+        super().save_model(request, obj, form, change)
+        
+        # Create or update associated User account for dashboard access
+        if obj.email:
+            user, created = User.objects.get_or_create(
+                email=obj.email,
+                defaults={
+                    'full_name': obj.full_name,
+                    'phone': obj.phone or '',
+                    'role': 'team_member',
+                    'is_active': True,
+                    'team_permissions': {
+                        'can_view_orders': True,
+                        'can_view_products': True,
+                        'can_edit_products': False,
+                        'can_approve_products': False,
+                        'can_manage_suppliers': False,
+                        'can_view_financial': False,
+                    }
+                }
+            )
+            if not created:
+                # Update existing user
+                user.full_name = obj.full_name
+                user.phone = obj.phone or ''
+                if user.role == 'customer':
+                    user.role = 'team_member'
+                user.save()
+            
+            # Link the user back to team member
+            if obj.user != user:
+                obj.user = user
+                obj.save()
+            
+            if created:
+                messages.success(request, f'User account for {obj.email} created with team_member role.')
+            else:
+                messages.info(request, f'Linked to existing user account: {obj.email}')
 
 
 @admin.register(TeamTask)

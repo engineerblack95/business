@@ -1,0 +1,510 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Team Dashboard - HerosTechnology{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Stats Cards */
+    .stats-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Task Items */
+    .task-item {
+        transition: background 0.3s ease;
+        border-left: 3px solid transparent;
+        border-radius: 10px;
+    }
+    
+    .task-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .task-priority-high { border-left-color: #dc3545; }
+    .task-priority-urgent { border-left-color: #dc3545; background: rgba(220,53,69,0.03); }
+    .task-priority-medium { border-left-color: #ffc107; }
+    .task-priority-low { border-left-color: #28a745; }
+    
+    /* Permission Section Cards */
+    .permission-card {
+        transition: all 0.3s ease;
+        border: 1px solid #eef2f6;
+        border-radius: 12px;
+    }
+    
+    .permission-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .permission-card.disabled {
+        opacity: 0.6;
+        background: #f8f9fa;
+    }
+    
+    .permission-card.disabled:hover {
+        transform: none;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .stats-card {
+            padding: 1rem;
+        }
+        
+        .stats-icon {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .stats-icon i {
+            font-size: 1.2rem;
+        }
+        
+        .stats-card h3 {
+            font-size: 1.2rem;
+        }
+        
+        .task-item {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px;
+        }
+        
+        .task-actions {
+            width: 100%;
+        }
+        
+        .task-actions .btn {
+            width: 100%;
+        }
+        
+        .table th, .table td {
+            font-size: 0.75rem;
+            padding: 0.5rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .stats-card h3 {
+            font-size: 1rem;
+        }
+        
+        .stats-icon {
+            width: 35px;
+            height: 35px;
+        }
+        
+        .badge {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.4rem;
+        }
+    }
+    
+    /* Badge Styles */
+    .badge {
+        padding: 0.35rem 0.65rem;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    
+    /* Welcome Card */
+    .welcome-card {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+        color: white;
+        border-radius: 15px;
+    }
+    
+    /* Quick Stats */
+    .quick-stat {
+        text-align: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_url %}{% url 'team:dashboard' %}{% endblock %}
+
+{% block sidebar_links %}
+<li class="nav-item">
+    <a class="nav-link active" href="{% url 'team:dashboard' %}">
+        <i class="fas fa-tachometer-alt"></i> Overview
+    </a>
+</li>
+
+{% if user.role == 'admin' or permissions.can_view_orders %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'orders:admin_orders' %}">
+        <i class="fas fa-shopping-cart"></i> Orders
+    </a>
+</li>
+{% endif %}
+
+{% if user.role == 'admin' or permissions.can_view_products %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'dashboard:manage_products' %}">
+        <i class="fas fa-box"></i> Products
+    </a>
+</li>
+{% endif %}
+
+{% if user.role == 'admin' or permissions.can_manage_suppliers %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'dashboard:manage_suppliers' %}">
+        <i class="fas fa-store"></i> Suppliers
+    </a>
+</li>
+{% endif %}
+
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'team:tasks' %}">
+        <i class="fas fa-tasks"></i> My Tasks
+    </a>
+</li>
+
+{% if user.role == 'admin' %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'team:manage_team' %}">
+        <i class="fas fa-users-cog"></i> Manage Team
+    </a>
+</li>
+{% endif %}
+{% endblock %}
+
+{% block dashboard_content %}
+<!-- Welcome Section -->
+<div class="welcome-card p-4 mb-4">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+        <div>
+            <h4 class="mb-1">
+                <i class="fas fa-user-check me-2"></i> 
+                Welcome back, {{ request.user.full_name|default:request.user.email }}
+            </h4>
+            <p class="mb-0 opacity-75 small">
+                <i class="fas fa-clock me-1"></i> 
+                {{ request.user.get_role_display }} Access · 
+                Last login: {{ request.user.last_login|date:"Y-m-d H:i"|default:"First time" }}
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark">
+                <i class="fas fa-shield-alt me-1"></i>
+                {% if user.role == 'admin' %}Full Admin Access
+                {% elif user.role == 'team_member' %}Team Member Access
+                {% else %}Limited Access{% endif %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row g-2 g-md-3 mb-4">
+    <div class="col-4 col-md-3">
+        <div class="quick-stat">
+            <i class="fas fa-tasks fa-lg text-primary mb-1"></i>
+            <h5 class="mb-0">{{ task_stats.pending|add:task_stats.in_progress }}</h5>
+            <small class="text-muted">Active Tasks</small>
+        </div>
+    </div>
+    <div class="col-4 col-md-3">
+        <div class="quick-stat">
+            <i class="fas fa-check-circle fa-lg text-success mb-1"></i>
+            <h5 class="mb-0">{{ task_stats.completed }}</h5>
+            <small class="text-muted">Completed</small>
+        </div>
+    </div>
+    <div class="col-4 col-md-3">
+        <div class="quick-stat">
+            <i class="fas fa-exclamation-triangle fa-lg text-warning mb-1"></i>
+            <h5 class="mb-0">{{ task_stats.overdue }}</h5>
+            <small class="text-muted">Overdue</small>
+        </div>
+    </div>
+    <div class="col-4 col-md-3 d-md-none">
+        <div class="quick-stat">
+            <i class="fas fa-chart-line fa-lg text-info mb-1"></i>
+            <h5 class="mb-0">{{ permissions|length }}</h5>
+            <small class="text-muted">Permissions</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Recent Tasks -->
+    <div class="col-12 col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Recent Tasks</h5>
+                <a href="{% url 'team:tasks' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_tasks %}
+                    {% for task in recent_tasks %}
+                    <div class="task-item p-3 border-bottom task-priority-{{ task.priority }}">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap flex-md-nowrap gap-2">
+                            <div class="flex-grow-1">
+                                <strong class="small d-block">{{ task.title|truncatechars:40 }}</strong>
+                                <div class="mt-1">
+                                    <span class="badge bg-{% if task.priority == 'high' or task.priority == 'urgent' %}danger{% elif task.priority == 'medium' %}warning{% else %}success{% endif %}">
+                                        {{ task.get_priority_display }}
+                                    </span>
+                                    <span class="badge bg-{% if task.status == 'pending' %}secondary{% elif task.status == 'in_progress' %}info{% elif task.status == 'completed' %}success{% else %}warning{% endif %}">
+                                        {{ task.get_status_display }}
+                                    </span>
+                                    {% if task.is_overdue %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar-alt me-1"></i> Due: {{ task.due_date|date:"Y-m-d H:i" }}
+                                </small>
+                            </div>
+                            <div class="task-actions">
+                                <a href="{% url 'team:task_detail' task.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-muted mb-2"></i>
+                        <p class="mb-0">No tasks assigned yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Available Sections (Based on Permissions) -->
+    <div class="col-12 col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-lock-open me-2"></i> Your Available Sections</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Orders Section -->
+                    <div class="col-12 col-sm-6">
+                        <div class="permission-card p-3 {% if not permissions.can_view_orders and user.role != 'admin' %}disabled{% endif %}">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="fas fa-shopping-cart fa-lg text-primary"></i>
+                                <strong class="small">Orders Management</strong>
+                            </div>
+                            <p class="small text-muted mb-2">View and manage customer orders</p>
+                            {% if permissions.can_view_orders or user.role == 'admin' %}
+                            <a href="{% url 'orders:admin_orders' %}" class="btn btn-sm btn-primary w-100">Access Orders →</a>
+                            {% else %}
+                            <button class="btn btn-sm btn-secondary w-100" disabled>No Access</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Products Section -->
+                    <div class="col-12 col-sm-6">
+                        <div class="permission-card p-3 {% if not permissions.can_view_products and user.role != 'admin' %}disabled{% endif %}">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="fas fa-box fa-lg text-success"></i>
+                                <strong class="small">Products Management</strong>
+                            </div>
+                            <p class="small text-muted mb-2">View and manage products inventory</p>
+                            {% if permissions.can_view_products or user.role == 'admin' %}
+                            <a href="{% url 'dashboard:manage_products' %}" class="btn btn-sm btn-success w-100">Access Products →</a>
+                            {% else %}
+                            <button class="btn btn-sm btn-secondary w-100" disabled>No Access</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Suppliers Section -->
+                    <div class="col-12 col-sm-6">
+                        <div class="permission-card p-3 {% if not permissions.can_manage_suppliers and user.role != 'admin' %}disabled{% endif %}">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="fas fa-store fa-lg text-warning"></i>
+                                <strong class="small">Suppliers Management</strong>
+                            </div>
+                            <p class="small text-muted mb-2">Review supplier applications</p>
+                            {% if permissions.can_manage_suppliers or user.role == 'admin' %}
+                            <a href="{% url 'dashboard:manage_suppliers' %}" class="btn btn-sm btn-warning w-100">Access Suppliers →</a>
+                            {% else %}
+                            <button class="btn btn-sm btn-secondary w-100" disabled>No Access</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Financial Section -->
+                    <div class="col-12 col-sm-6">
+                        <div class="permission-card p-3 {% if not permissions.can_view_financial and user.role != 'admin' %}disabled{% endif %}">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="fas fa-chart-line fa-lg text-danger"></i>
+                                <strong class="small">Financial Data</strong>
+                            </div>
+                            <p class="small text-muted mb-2">View commission and payouts</p>
+                            {% if permissions.can_view_financial or user.role == 'admin' %}
+                            <a href="{% url 'orders:commission_dashboard' %}" class="btn btn-sm btn-danger w-100">Access Financial →</a>
+                            {% else %}
+                            <button class="btn btn-sm btn-secondary w-100" disabled>No Access</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders (if permission exists) -->
+{% if user.role == 'admin' or permissions.can_view_orders %}
+{% if recent_orders %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i> Recent Orders</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders|slice:":5" %}
+                            <tr>
+                                <td><small>{{ order.order_number|truncatechars:12 }}</small></td>
+                                <td><small>{{ order.customer.email|truncatechars:20 }}</small></td>
+                                <td><small>{{ order.grand_total|floatformat:0 }} FRW</small></td>
+                                <td>
+                                    <span class="badge {% if order.order_status == 'delivered' %}bg-success{% elif order.order_status == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                        {{ order.get_order_status_display|truncatechars:10 }}
+                                    </span>
+                                </td>
+                                <td><small>{{ order.created_at|date:"Y-m-d" }}</small></td>
+                                <td>
+                                    <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Recent Products (if permission exists) -->
+{% if user.role == 'admin' or permissions.can_view_products %}
+{% if recent_products %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-box me-2"></i> Recent Products</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in recent_products|slice:":5" %}
+                            <tr>
+                                <td><small>{{ product.name|truncatechars:35 }}</small></td>
+                                <td><small>{{ product.final_price|floatformat:0 }} FRW</small></td>
+                                <td><small>{{ product.exact_quantity }}</small></td>
+                                <td>
+                                    <span class="badge {% if product.status == 'approved' %}bg-success{% else %}bg-warning{% endif %}">
+                                        {{ product.get_status_display|truncatechars:10 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'products:detail' product.slug %}" class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Tasks Summary Card -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
+                    <div>
+                        <i class="fas fa-chart-pie fa-2x text-primary mb-2"></i>
+                        <h6 class="mb-0">Task Completion</h6>
+                        <small class="text-muted">Your overall progress</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="progress mb-2" style="height: 10px; width: 200px;">
+                            <div class="progress-bar bg-success" style="width: {{ task_stats.completion_percentage|default:0 }}%"></div>
+                        </div>
+                        <span>{{ task_stats.completion_percentage|default:0 }}% Complete</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-primary p-2">{{ task_stats.completed }}/{{ task_stats.total_tasks }} Tasks</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-refresh script (optional) -->
+<script>
+    // Auto-refresh notifications count periodically
+    setInterval(function() {
+        // Update task counts or notifications if needed
+        console.log('Dashboard auto-refresh');
+    }, 60000);
+</script>
+{% endblock %}
