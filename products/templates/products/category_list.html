@@ -3,6 +3,87 @@
 
 {% block title %}{{ category.name }} - HerosTechnology{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2C3E50;
+        --secondary-color: #E67E22;
+        --accent-color: #3498DB;
+        --success-color: #27AE60;
+        --danger-color: #E74C3C;
+        --warning-color: #F39C12;
+        --dark-color: #1A252F;
+        --light-color: #ECF0F1;
+    }
+    
+    .product-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .card-img-top {
+        transition: transform 0.3s ease;
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+    }
+    .product-card:hover .card-img-top {
+        transform: scale(1.05);
+    }
+    .position-relative {
+        overflow: hidden;
+    }
+    .sort-select {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 8px 15px;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    .sort-select:focus {
+        border-color: var(--secondary-color);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(230,126,34,0.25);
+    }
+    .breadcrumb-item a {
+        color: var(--secondary-color);
+        text-decoration: none;
+    }
+    .breadcrumb-item a:hover {
+        color: #D35400;
+    }
+    .btn-primary {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+    }
+    .btn-primary:hover {
+        background-color: #D35400;
+        border-color: #D35400;
+    }
+    .badge.bg-primary {
+        background-color: var(--secondary-color) !important;
+    }
+    .text-primary {
+        color: var(--secondary-color) !important;
+    }
+    .page-item.active .page-link {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+    }
+    .page-link {
+        color: var(--secondary-color);
+    }
+    .page-link:hover {
+        color: #D35400;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <!-- Breadcrumb -->
@@ -10,30 +91,32 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
             <li class="breadcrumb-item"><a href="{% url 'products:list' %}">Products</a></li>
-            <li class="breadcrumb-item active">{{ category.name }}</li>
+            <li class="breadcrumb-item active" aria-current="page">{{ category.name }}</li>
         </ol>
     </nav>
     
     <!-- Category Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card bg-light">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
+            <div class="card bg-light border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center flex-wrap">
                         {% if category.image %}
-                        <img src="{{ category.image.url }}" alt="{{ category.name }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 10px;" class="me-3">
+                        <img src="{{ category.image.url }}" alt="{{ category.name }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 10px;" class="me-3 mb-2">
                         {% else %}
-                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 80px; height: 80px;">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3 mb-2" style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary-color), var(--dark-color)) !important;">
                             <i class="fas {{ category.get_icon_class }} fa-2x text-white"></i>
                         </div>
                         {% endif %}
                         <div>
-                            <h2 class="mb-0">{{ category.name }}</h2>
+                            <h2 class="mb-0" style="color: var(--primary-color);">{{ category.name }}</h2>
                             {% if category.description %}
                             <p class="text-muted mb-0 mt-2">{{ category.description }}</p>
                             {% endif %}
                             <p class="mb-0 mt-2">
-                                <span class="badge bg-primary">{{ total_count }} products found</span>
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-box"></i> {{ total_count }} products found
+                                </span>
                             </p>
                         </div>
                     </div>
@@ -42,14 +125,41 @@
         </div>
     </div>
     
+    <!-- Sort and Filter Bar -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6">
+            {% if products %}
+            <p class="text-muted mb-0">
+                <i class="fas fa-box-open"></i> Showing 
+                <strong>{{ products.start_index }}</strong> - <strong>{{ products.end_index }}</strong> 
+                of <strong>{{ total_count }}</strong> products
+            </p>
+            {% endif %}
+        </div>
+        <div class="col-md-6 text-md-end">
+            <form method="get" class="d-inline-flex gap-2 align-items-center">
+                <label class="text-muted mb-0">
+                    <i class="fas fa-sort-amount-down-alt"></i> Sort by:
+                </label>
+                <select name="sort_by" class="sort-select" onchange="this.form.submit()">
+                    <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>🆕 Newest First</option>
+                    <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>💰 Price: Low to High</option>
+                    <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>💰 Price: High to Low</option>
+                    <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>⭐ Most Popular</option>
+                    <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>★ Highest Rated</option>
+                </select>
+            </form>
+        </div>
+    </div>
+    
     <!-- Products Grid -->
     <div class="row">
         {% for product in products %}
-        <div class="col-md-3 col-sm-6 mb-4">
-            <div class="card h-100 product-card">
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 product-card shadow-sm">
                 <div class="position-relative">
                     {% if product.main_image %}
-                    <img src="{{ product.main_image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                    <img src="{{ product.main_image.url }}" class="card-img-top" alt="{{ product.name }}" loading="lazy">
                     {% else %}
                     <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
                         <i class="fas fa-image fa-3x text-muted"></i>
@@ -58,7 +168,7 @@
                     
                     <!-- Stock Badge -->
                     <div class="position-absolute top-0 end-0 m-2">
-                        <span class="badge bg-{{ product.get_stock_badge_class }}">
+                        <span class="badge {% if product.exact_quantity > 0 %}bg-success{% else %}bg-danger{% endif %} px-2 py-1">
                             {% if product.exact_quantity > 0 %}
                                 <i class="fas fa-check-circle"></i> In Stock
                             {% else %}
@@ -66,24 +176,45 @@
                             {% endif %}
                         </span>
                     </div>
+                    
+                    <!-- Sale Badge (if discounted) -->
+                    {% if product.compare_at_price and product.compare_at_price > product.final_price %}
+                    <div class="position-absolute top-0 start-0 m-2">
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-tag"></i> SALE
+                        </span>
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <div class="card-body">
-                    <h5 class="card-title">{{ product.name|truncatechars:35 }}</h5>
-                    <p class="card-text text-muted small">{{ product.short_description|truncatechars:60 }}</p>
+                    <h5 class="card-title" style="font-size: 1rem; font-weight: 600; min-height: 2.5rem;">
+                        {{ product.name|truncatechars:40 }}
+                    </h5>
                     
-                    <div class="d-flex justify-content-between align-items-center mt-2">
+                    {% if product.short_description %}
+                    <p class="card-text text-muted small">{{ product.short_description|truncatechars:55 }}</p>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
                         <div>
-                            <span class="h5 mb-0 text-primary">{{ product.final_price|floatformat:0 }} FRW</span>
-                            <small class="text-muted">incl. VAT</small>
+                            {% if product.compare_at_price and product.compare_at_price > product.final_price %}
+                            <span class="text-muted text-decoration-line-through small me-1">
+                                {{ product.compare_at_price|floatformat:0 }} FRW
+                            </span>
+                            {% endif %}
+                            <span class="h5 mb-0" style="color: var(--secondary-color); font-weight: 700;">
+                                {{ product.final_price|floatformat:0 }} FRW
+                            </span>
+                            <small class="text-muted d-block">incl. VAT</small>
                         </div>
                         <div class="text-warning">
                             {% with rating=product.rating|floatformat:"0" %}
                                 {% for i in "12345"|make_list %}
                                     {% if forloop.counter <= rating %}
-                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star fa-sm"></i>
                                     {% else %}
-                                        <i class="far fa-star"></i>
+                                        <i class="far fa-star fa-sm"></i>
                                     {% endif %}
                                 {% endfor %}
                             {% endwith %}
@@ -92,8 +223,8 @@
                     </div>
                 </div>
                 
-                <div class="card-footer bg-transparent">
-                    <a href="{% url 'products:detail' product.slug %}" class="btn btn-primary w-100">
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{% url 'products:detail' product.slug %}" class="btn btn-primary w-100 rounded-pill">
                         <i class="fas fa-eye"></i> View Details
                     </a>
                 </div>
@@ -101,11 +232,13 @@
         </div>
         {% empty %}
         <div class="col-12">
-            <div class="alert alert-info text-center py-5">
-                <i class="fas fa-search fa-3x mb-3"></i>
-                <h5>No products found in this category</h5>
-                <p>Check back later for new products in the {{ category.name }} category.</p>
-                <a href="{% url 'products:list' %}" class="btn btn-primary">Browse All Products</a>
+            <div class="alert alert-info text-center py-5 border-0 shadow-sm" style="background-color: #e8f5e9;">
+                <i class="fas fa-search fa-4x mb-3" style="color: var(--secondary-color);"></i>
+                <h4 style="color: var(--primary-color);">No products found in this category</h4>
+                <p class="text-muted">Check back later for new products in the {{ category.name }} category.</p>
+                <a href="{% url 'products:list' %}" class="btn btn-primary rounded-pill px-4">
+                    <i class="fas fa-shopping-cart"></i> Browse All Products
+                </a>
             </div>
         </div>
         {% endfor %}
@@ -113,60 +246,70 @@
     
     <!-- Pagination -->
     {% if products.has_other_pages %}
-    <nav aria-label="Page navigation" class="mt-4">
+    <nav aria-label="Page navigation" class="mt-5">
         <ul class="pagination justify-content-center">
             {% if products.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ products.previous_page_number }}">
+                <a class="page-link rounded-pill me-1" href="?page={{ products.previous_page_number }}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">
                     <i class="fas fa-chevron-left"></i> Previous
                 </a>
             </li>
             {% else %}
             <li class="page-item disabled">
-                <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
+                <span class="page-link rounded-pill me-1"><i class="fas fa-chevron-left"></i> Previous</span>
             </li>
             {% endif %}
             
             {% for num in products.paginator.page_range %}
                 {% if products.number == num %}
-                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                <li class="page-item active">
+                    <span class="page-link rounded-pill mx-1" style="background-color: var(--secondary-color); border-color: var(--secondary-color);">{{ num }}</span>
+                </li>
                 {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
-                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                <li class="page-item">
+                    <a class="page-link rounded-pill mx-1" href="?page={{ num }}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">{{ num }}</a>
+                </li>
                 {% endif %}
             {% endfor %}
             
             {% if products.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ products.next_page_number }}">
+                <a class="page-link rounded-pill ms-1" href="?page={{ products.next_page_number }}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">
                     Next <i class="fas fa-chevron-right"></i>
                 </a>
             </li>
             {% else %}
             <li class="page-item disabled">
-                <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
+                <span class="page-link rounded-pill ms-1">Next <i class="fas fa-chevron-right"></i></span>
             </li>
             {% endif %}
         </ul>
     </nav>
     {% endif %}
+    
+    <!-- Back to Top Button -->
+    <div class="text-center mt-4">
+        <a href="#top" class="btn btn-sm btn-outline-secondary rounded-pill">
+            <i class="fas fa-arrow-up"></i> Back to Top
+        </a>
+    </div>
 </div>
 
-<style>
-.product-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-}
-.card-img-top {
-    transition: transform 0.3s ease;
-}
-.product-card:hover .card-img-top {
-    transform: scale(1.05);
-}
-.position-relative {
-    overflow: hidden;
-}
-</style>
+<script>
+    // Preserve sort parameter when using pagination
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add sort_by to all pagination links if not already present
+        const sortBy = new URLSearchParams(window.location.search).get('sort_by');
+        if (sortBy) {
+            const paginationLinks = document.querySelectorAll('.pagination a');
+            paginationLinks.forEach(link => {
+                const url = new URL(link.href, window.location.origin);
+                if (!url.searchParams.has('sort_by')) {
+                    url.searchParams.set('sort_by', sortBy);
+                    link.href = url.toString();
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

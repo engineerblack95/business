@@ -12,11 +12,12 @@ from .utils.analytics import DashboardAnalytics
 from .utils.notifications import NotificationManager
 from .models import UserActivityLog, DashboardPreference
 from notifications.models import Notification
-from .forms import TeamMemberForm, NotificationFilterForm, ProductQuickEditForm
+from .forms import NotificationFilterForm, ProductQuickEditForm
 
 from products.models import Product, Category
 from orders.models import Order, OrderItem, CommissionEarning, WithdrawalRequest
 from accounts.models import User
+from team.models import TeamMember, TeamTask
 
 
 @login_required
@@ -57,11 +58,22 @@ def admin_dashboard_view(request):
         admin=request.user
     ).order_by('-created_at')[:5]
     
+    # Get team statistics
+    team_stats = {
+        'total_team_members': User.objects.filter(role='team_member').count(),
+        'active_tasks': TeamTask.objects.filter(status__in=['pending', 'in_progress']).count(),
+        'completed_tasks_this_month': TeamTask.objects.filter(
+            status='completed',
+            completed_at__month=timezone.now().month
+        ).count(),
+    }
+    
     context = {
         'analytics': analytics,
         'unread_notifications': unread_notifications,
         'recent_suppliers': recent_applications,
         'recent_withdrawals': recent_withdrawals,
+        'team_stats': team_stats,
         'section': 'overview',
     }
     return render(request, 'dashboard/admin_dashboard.html', context)
@@ -135,18 +147,38 @@ def team_dashboard_view(request):
     if request.user.role == 'team_member':
         permissions = request.user.team_permissions
         
+        # Get tasks assigned to this team member
+        assigned_tasks = TeamTask.objects.filter(
+            assigned_to=request.user,
+            status__in=['pending', 'in_progress']
+        ).order_by('-priority', 'due_date')[:10]
+        
+        # Get task statistics
+        task_stats = {
+            'pending': TeamTask.objects.filter(assigned_to=request.user, status='pending').count(),
+            'in_progress': TeamTask.objects.filter(assigned_to=request.user, status='in_progress').count(),
+            'completed': TeamTask.objects.filter(assigned_to=request.user, status='completed').count(),
+            'overdue': TeamTask.objects.filter(
+                assigned_to=request.user,
+                status__in=['pending', 'in_progress'],
+                due_date__lt=timezone.now()
+            ).count(),
+        }
+        
         # Show only allowed sections
         context = {
             'permissions': permissions,
+            'assigned_tasks': assigned_tasks,
+            'task_stats': task_stats,
             'section': 'overview',
         }
         
         # Load data based on permissions
         if permissions.get('can_view_orders'):
-            context['recent_orders'] = Order.objects.order_by('-created_at')[:10]
+            context['recent_orders'] = Order.objects.select_related('customer').order_by('-created_at')[:10]
         
         if permissions.get('can_view_products'):
-            context['recent_products'] = Product.objects.order_by('-created_at')[:10]
+            context['recent_products'] = Product.objects.select_related('category', 'owner').order_by('-created_at')[:10]
         
         return render(request, 'dashboard/team_dashboard.html', context)
     
@@ -154,36 +186,156 @@ def team_dashboard_view(request):
     return redirect('dashboard:admin')
 
 
+# ==================== TEAM MANAGEMENT VIEWS ====================
+
 @login_required
 @role_required(['admin'])
 def manage_team_members_view(request):
-    """Admin manage team members"""
+    """Admin manage team members - Professional version"""
+    
+    # Get all team members (users with team_member role)
+    team_members = User.objects.filter(role='team_member').select_related('team_display').order_by('-date_joined')
+    
+    # Get total registered customers (for reference)
+    total_customers = User.objects.filter(role='customer').count()
+    
+    # Get count of team members with permissions
+    team_members_with_perms = 0
+    for member in team_members:
+        if member.team_permissions and any(member.team_permissions.values()):
+            team_members_with_perms += 1
     
     if request.method == 'POST':
-        form = TeamMemberForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            
-            # Send notification to new team member
+        email = request.POST.get('email')
+        full_name = request.POST.get('full_name')
+        phone = request.POST.get('phone')
+        position = request.POST.get('position')
+        custom_position = request.POST.get('custom_position', '')
+        bio = request.POST.get('bio', '')
+        expertise = request.POST.get('expertise', '')
+        achievements = request.POST.get('achievements', '')
+        linkedin = request.POST.get('linkedin', '')
+        twitter = request.POST.get('twitter', '')
+        facebook = request.POST.get('facebook', '')
+        instagram = request.POST.get('instagram', '')
+        
+        # Validate email exists
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            messages.error(
+                request, 
+                f'❌ User with email "{email}" does not exist in the system.\n\n'
+                f'To add this person as a team member, they must FIRST register as a customer.'
+            )
+            return redirect('dashboard:manage_team')
+        
+        # Check if user is already admin
+        if user.role == 'admin':
+            messages.error(request, f'❌ User "{email}" is an ADMIN and cannot be added as team member.')
+            return redirect('dashboard:manage_team')
+        
+        # Check if user is already supplier
+        if user.role == 'supplier':
+            messages.error(request, f'❌ User "{email}" is a SUPPLIER. Cannot convert to team member.')
+            return redirect('dashboard:manage_team')
+        
+        # Check if user is already team member
+        if user.role == 'team_member':
+            messages.warning(request, f'⚠️ User "{email}" is already a team member.')
+            return redirect('dashboard:manage_team')
+        
+        # Update user role and permissions
+        user.role = 'team_member'
+        user.full_name = full_name or user.full_name
+        user.phone = phone or user.phone
+        
+        # Set permissions from form
+        user.team_permissions = {
+            'can_view_orders': request.POST.get('can_view_orders') == 'on',
+            'can_view_products': request.POST.get('can_view_products') == 'on',
+            'can_edit_products': request.POST.get('can_edit_products') == 'on',
+            'can_approve_products': request.POST.get('can_approve_products') == 'on',
+            'can_manage_suppliers': request.POST.get('can_manage_suppliers') == 'on',
+            'can_view_financial': request.POST.get('can_view_financial') == 'on',
+            'can_view_logs': request.POST.get('can_view_logs') == 'on',
+        }
+        user.save()
+        
+        # Handle profile image if uploaded
+        profile_image = None
+        if request.FILES.get('profile_image'):
+            profile_image = request.FILES['profile_image']
+        
+        # Create or update TeamMember record for About page
+        team_member_record, created = TeamMember.objects.get_or_create(
+            user=user,
+            defaults={
+                'full_name': full_name or user.full_name,
+                'email': user.email,
+                'phone': phone or user.phone,
+                'position': position if position and position != 'other' else 'other',
+                'custom_position': custom_position if position == 'other' else '',
+                'bio': bio,
+                'expertise': expertise,
+                'achievements': achievements,
+                'linkedin': linkedin,
+                'twitter': twitter,
+                'facebook': facebook,
+                'instagram': instagram,
+                'is_active': True,
+            }
+        )
+        
+        if not created:
+            team_member_record.full_name = full_name or user.full_name
+            team_member_record.phone = phone or user.phone
+            team_member_record.bio = bio
+            team_member_record.expertise = expertise
+            team_member_record.achievements = achievements
+            team_member_record.linkedin = linkedin
+            team_member_record.twitter = twitter
+            team_member_record.facebook = facebook
+            team_member_record.instagram = instagram
+            if position:
+                if position == 'other':
+                    team_member_record.position = 'other'
+                    team_member_record.custom_position = custom_position
+                else:
+                    team_member_record.position = position
+            if profile_image:
+                team_member_record.profile_image = profile_image
+            team_member_record.save()
+        elif profile_image:
+            team_member_record.profile_image = profile_image
+            team_member_record.save()
+        
+        # Send notification
+        try:
             NotificationManager.send_notification(
                 user=user,
-                title="Welcome to the Team!",
-                message=f"You have been added as a team member at HerosTechnology.",
+                title="Welcome to the Team! 🎉",
+                message=f"You have been added as a team member at HerosTechnology. "
+                        f"You can now access the team dashboard.",
                 notification_type='system',
+                priority='high',
                 link='/dashboard/team/'
             )
-            
-            messages.success(request, f'Team member {user.email} added successfully.')
-            return redirect('dashboard:manage_team')
-    else:
-        form = TeamMemberForm()
-    
-    # Get all team members
-    team_members = User.objects.filter(role='team_member').order_by('-date_joined')
+        except Exception as e:
+            print(f"Notification error: {e}")
+        
+        perm_count = sum(1 for v in user.team_permissions.values() if v)
+        messages.success(
+            request, 
+            f'✅ Team member "{user.email}" added successfully!\n'
+            f'User role updated to Team Member with {perm_count} permissions.'
+        )
+        return redirect('dashboard:manage_team')
     
     context = {
-        'form': form,
         'team_members': team_members,
+        'total_customers': total_customers,
+        'team_members_with_perms': team_members_with_perms,
         'section': 'team',
     }
     return render(request, 'dashboard/manage_team.html', context)
@@ -192,24 +344,127 @@ def manage_team_members_view(request):
 @login_required
 @role_required(['admin'])
 def edit_team_member_view(request, user_id):
-    """Admin edit team member permissions"""
+    """Admin edit team member permissions and details"""
     
-    team_member = get_object_or_404(User, id=user_id, role='team_member')
+    team_member = get_object_or_404(User, id=user_id)
+    
+    # Only allow editing team members or customers (to promote)
+    if team_member.role not in ['team_member', 'customer']:
+        messages.error(request, f'Cannot edit user with role: {team_member.get_role_display()}')
+        return redirect('dashboard:manage_team')
+    
+    # Get associated TeamMember record if exists
+    team_record = TeamMember.objects.filter(user=team_member).first()
     
     if request.method == 'POST':
-        form = TeamMemberForm(request.POST, instance=team_member)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'Team member {team_member.email} updated successfully.')
-            return redirect('dashboard:manage_team')
-    else:
-        # Set initial permissions
-        initial_permissions = [perm for perm, value in team_member.team_permissions.items() if value]
-        form = TeamMemberForm(instance=team_member, initial={'permissions': initial_permissions})
+        action = request.POST.get('action', 'update')
+        
+        if action == 'update':
+            # Update basic info
+            team_member.full_name = request.POST.get('full_name', team_member.full_name)
+            team_member.phone = request.POST.get('phone', team_member.phone)
+            
+            # Update permissions
+            team_member.team_permissions = {
+                'can_view_orders': request.POST.get('can_view_orders') == 'on',
+                'can_view_products': request.POST.get('can_view_products') == 'on',
+                'can_edit_products': request.POST.get('can_edit_products') == 'on',
+                'can_approve_products': request.POST.get('can_approve_products') == 'on',
+                'can_manage_suppliers': request.POST.get('can_manage_suppliers') == 'on',
+                'can_view_financial': request.POST.get('can_view_financial') == 'on',
+                'can_view_logs': request.POST.get('can_view_logs') == 'on',
+            }
+            
+            # Update role if promoting from customer
+            if team_member.role == 'customer':
+                team_member.role = 'team_member'
+                promotion_message = " User has been promoted to Team Member."
+            else:
+                promotion_message = ""
+            
+            team_member.save()
+            
+            # Update or create TeamMember record
+            position = request.POST.get('position')
+            bio = request.POST.get('bio', '')
+            expertise = request.POST.get('expertise', '')
+            achievements = request.POST.get('achievements', '')
+            linkedin = request.POST.get('linkedin', '')
+            twitter = request.POST.get('twitter', '')
+            facebook = request.POST.get('facebook', '')
+            instagram = request.POST.get('instagram', '')
+            
+            if team_record:
+                team_record.full_name = team_member.full_name
+                team_record.phone = team_member.phone
+                team_record.bio = bio
+                team_record.expertise = expertise
+                team_record.achievements = achievements
+                team_record.linkedin = linkedin
+                team_record.twitter = twitter
+                team_record.facebook = facebook
+                team_record.instagram = instagram
+                if position:
+                    if position == 'other':
+                        team_record.position = 'other'
+                        team_record.custom_position = request.POST.get('custom_position', '')
+                    else:
+                        team_record.position = position
+                team_record.save()
+            elif team_member.role == 'team_member':
+                # Create new TeamMember record if it doesn't exist
+                TeamMember.objects.create(
+                    user=team_member,
+                    full_name=team_member.full_name,
+                    email=team_member.email,
+                    phone=team_member.phone,
+                    position=position if position and position != 'other' else 'other',
+                    custom_position=request.POST.get('custom_position', '') if position == 'other' else '',
+                    bio=bio,
+                    expertise=expertise,
+                    achievements=achievements,
+                    linkedin=linkedin,
+                    twitter=twitter,
+                    facebook=facebook,
+                    instagram=instagram,
+                    is_active=True,
+                )
+            
+            # Handle profile image update
+            if request.FILES.get('profile_image'):
+                if team_record:
+                    team_record.profile_image = request.FILES['profile_image']
+                    team_record.save()
+            
+            perm_count = sum(1 for v in team_member.team_permissions.values() if v)
+            messages.success(
+                request, 
+                f'✅ Team member "{team_member.email}" updated successfully!{promotion_message}\n'
+                f'Current permissions: {perm_count}'
+            )
+            
+        elif action == 'remove':
+            # Remove team member (revert to customer)
+            team_member.role = 'customer'
+            team_member.team_permissions = {}
+            team_member.save()
+            
+            # Optionally deactivate TeamMember record
+            if team_record:
+                team_record.is_active = False
+                team_record.save()
+            
+            messages.info(request, f'⚠️ Team member "{team_member.email}" removed. Role reverted to Customer.')
+        
+        return redirect('dashboard:manage_team')
+    
+    # Get current permissions for checkboxes
+    current_perms = team_member.team_permissions
     
     context = {
-        'form': form,
         'team_member': team_member,
+        'team_record': team_record,
+        'current_perms': current_perms,
         'section': 'team',
     }
     return render(request, 'dashboard/edit_team_member.html', context)
@@ -218,18 +473,80 @@ def edit_team_member_view(request, user_id):
 @login_required
 @role_required(['admin'])
 def remove_team_member_view(request, user_id):
-    """Admin remove team member"""
+    """Admin remove team member - API endpoint for AJAX/Form submission"""
     
-    team_member = get_object_or_404(User, id=user_id, role='team_member')
+    team_member = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
+        email = team_member.email
+        
+        # Revert to customer
         team_member.role = 'customer'
         team_member.team_permissions = {}
         team_member.save()
-        messages.success(request, f'Team member {team_member.email} removed.')
+        
+        # Deactivate TeamMember record
+        team_record = TeamMember.objects.filter(user=team_member).first()
+        if team_record:
+            team_record.is_active = False
+            team_record.save()
+        
+        # Send notification about removal
+        try:
+            NotificationManager.send_notification(
+                user=team_member,
+                title="Team Member Access Removed",
+                message=f"Your team member access has been removed. "
+                        f"You now have customer access only.",
+                notification_type='system',
+                priority='medium',
+                link='/dashboard/customer/'
+            )
+        except Exception as e:
+            print(f"Notification error: {e}")
+        
+        messages.success(request, f'✅ Team member "{email}" removed successfully. User role reverted to Customer.')
     
     return redirect('dashboard:manage_team')
 
+
+@login_required
+@role_required(['admin'])
+def get_team_member_details_api(request, user_id):
+    """API endpoint to get team member details for editing"""
+    
+    team_member = get_object_or_404(User, id=user_id)
+    
+    if team_member.role not in ['team_member', 'customer']:
+        return JsonResponse({'error': 'Invalid user type'}, status=400)
+    
+    team_record = TeamMember.objects.filter(user=team_member).first()
+    
+    data = {
+        'id': str(team_member.id),
+        'email': team_member.email,
+        'full_name': team_member.full_name or '',
+        'phone': team_member.phone or '',
+        'role': team_member.role,
+        'permissions': team_member.team_permissions,
+        'position': team_record.position if team_record else '',
+        'custom_position': team_record.custom_position if team_record else '',
+        'bio': team_record.bio if team_record else '',
+        'expertise': team_record.expertise if team_record else '',
+        'achievements': team_record.achievements if team_record else '',
+        'linkedin': team_record.linkedin if team_record else '',
+        'twitter': team_record.twitter if team_record else '',
+        'facebook': team_record.facebook if team_record else '',
+        'instagram': team_record.instagram if team_record else '',
+        'display_order': team_record.display_order if team_record else 0,
+        'is_active': team_record.is_active if team_record else True,
+        'featured': team_record.featured if team_record else False,
+    }
+    
+    return JsonResponse(data)
+
+
+# ==================== NOTIFICATION VIEWS ====================
 
 @login_required
 def notifications_view(request):
@@ -321,6 +638,8 @@ def get_notifications_api(request):
     })
 
 
+# ==================== PRODUCT MANAGEMENT VIEWS ====================
+
 @login_required
 @role_required(['admin'])
 def manage_products_dashboard(request):
@@ -376,6 +695,8 @@ def quick_stock_update_view(request):
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
+
+# ==================== SUPPLIER MANAGEMENT VIEWS ====================
 
 @login_required
 @role_required(['admin'])
@@ -553,7 +874,8 @@ def reject_supplier_view(request, user_id):
     return redirect(f"{reverse('dashboard:manage_suppliers')}?pending=true")
 
 
-# ========== UPDATED ACTIVITY LOGS VIEW ==========
+# ==================== ACTIVITY LOGS VIEW (FIXED) ====================
+
 @login_required
 @role_required(['admin'])
 def activity_logs_view(request):
@@ -564,19 +886,27 @@ def activity_logs_view(request):
     # Get all login history with user details
     logs = UserLoginHistory.objects.select_related('user').order_by('-login_time')
     
-    # Apply filters
-    activity_type = request.GET.get('type')
-    if activity_type:
-        logs = logs.filter(activity_type=activity_type)
+    # Apply filters - FIXED: Removed invalid 'activity_type' filter
+    # The UserLoginHistory model does NOT have an activity_type field
     
     user_id = request.GET.get('user')
     if user_id:
         logs = logs.filter(user_id=user_id)
     
-    # Device filter
+    # Device filter (valid field)
     device_type = request.GET.get('device')
     if device_type:
         logs = logs.filter(device_type=device_type)
+    
+    # Optional: OS Type filter
+    os_type = request.GET.get('os_type')
+    if os_type:
+        logs = logs.filter(os_type=os_type)
+    
+    # Optional: Browser filter
+    browser = request.GET.get('browser')
+    if browser:
+        logs = logs.filter(browser__icontains=browser)
     
     # Date range filter
     date_from = request.GET.get('date_from')
@@ -596,20 +926,46 @@ def activity_logs_view(request):
     # Get users for filter dropdown
     users = User.objects.all().order_by('email')
     
+    # Device choices for filter dropdown
+    device_choices = [
+        ('', 'All Devices'),
+        ('pc', '💻 PC/Laptop'),
+        ('smartphone', '📱 Smartphone'),
+        ('tablet', '📟 Tablet'),
+        ('bot', '🤖 Bot/Crawler'),
+        ('unknown', '❓ Unknown'),
+    ]
+    
+    # OS choices for filter dropdown
+    os_choices = [
+        ('', 'All OS'),
+        ('windows', '🪟 Windows'),
+        ('macos', '🍎 macOS'),
+        ('linux', '🐧 Linux'),
+        ('android', '📱 Android'),
+        ('ios', '📱 iOS'),
+        ('chromeos', '🌐 Chrome OS'),
+        ('unknown', '❓ Unknown'),
+    ]
+    
     context = {
         'logs': page_obj,
         'users': users,
-        'selected_type': activity_type,
+        'device_choices': device_choices,
+        'os_choices': os_choices,
+        'selected_device': request.GET.get('device', ''),
+        'selected_os': request.GET.get('os_type', ''),
+        'selected_browser': request.GET.get('browser', ''),
         'selected_user': user_id,
         'date_from': request.GET.get('date_from', ''),
         'date_to': request.GET.get('date_to', ''),
-        'device_type': device_type,
         'section': 'logs',
     }
     return render(request, 'dashboard/activity_logs.html', context)
 
 
-# ========== REPORTS VIEW (Single, fixed) ==========
+# ==================== REPORTS VIEW ====================
+
 @login_required
 @role_required(['admin'])
 def reports_view(request):

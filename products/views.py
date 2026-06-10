@@ -29,7 +29,9 @@ def get_client_ip(request):
     return ip
 
 
-# ========== NEW HOMEPAGE VIEW ==========
+# ============================================================
+# HOMEPAGE VIEW
+# ============================================================
 def home_view(request):
     """Homepage with dynamic categories and featured products"""
     
@@ -54,9 +56,74 @@ def home_view(request):
         'top_rated': top_rated,
     }
     return render(request, 'home.html', context)
-# ========== END HOMEPAGE VIEW ==========
 
 
+# ============================================================
+# CATEGORY VIEWS
+# ============================================================
+def category_products_view(request, slug):
+    """View products by category - Main category view (uses category_list.html)"""
+    
+    # Get the category (case-insensitive lookup)
+    category = get_object_or_404(Category, slug__iexact=slug, is_active=True)
+    
+    # Debug: Print to console
+    print(f"=== CATEGORY DEBUG ===")
+    print(f"Category: {category.name} (slug: {slug})")
+    
+    # Get all approved products in this category
+    products = Product.objects.filter(
+        category=category,
+        status='approved'
+    ).select_related('category', 'owner').order_by('-created_at')
+    
+    print(f"Products found in main category: {products.count()}")
+    
+    # If no products, try to find products in subcategories
+    if products.count() == 0:
+        # Get all subcategory IDs
+        subcategory_ids = Category.objects.filter(parent=category, is_active=True).values_list('id', flat=True)
+        if subcategory_ids:
+            products = Product.objects.filter(
+                category_id__in=subcategory_ids,
+                status='approved'
+            ).select_related('category', 'owner').order_by('-created_at')
+            print(f"Products found in subcategories: {products.count()}")
+    
+    # Apply sorting
+    sort_by = request.GET.get('sort_by', 'newest')
+    if sort_by == 'price_low':
+        products = products.order_by('final_price')
+    elif sort_by == 'price_high':
+        products = products.order_by('-final_price')
+    elif sort_by == 'popular':
+        products = products.order_by('-sales_count', '-views_count')
+    elif sort_by == 'rating':
+        products = products.order_by('-rating', '-rating_count')
+    else:  # newest
+        products = products.order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(products, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get subcategories for display
+    subcategories = Category.objects.filter(parent=category, is_active=True)
+    
+    context = {
+        'category': category,
+        'products': page_obj,
+        'subcategories': subcategories,
+        'total_count': products.count(),
+        'sort_by': sort_by,
+    }
+    return render(request, 'products/category_list.html', context)
+
+
+# ============================================================
+# PRODUCT LISTING VIEW
+# ============================================================
 def product_list_view(request):
     """Public product listing with search and filters"""
     
@@ -124,6 +191,9 @@ def product_list_view(request):
     return render(request, 'products/list.html', context)
 
 
+# ============================================================
+# PRODUCT DETAIL VIEW
+# ============================================================
 def product_detail_view(request, slug):
     """Product detail page with stock visibility logic"""
     
@@ -194,6 +264,30 @@ def product_detail_view(request, slug):
     return render(request, 'products/detail.html', context)
 
 
+# ============================================================
+# SUPPLIER PRODUCT MANAGEMENT
+# ============================================================
+@login_required
+@role_required(['supplier'])
+def supplier_products_view(request):
+    """Supplier view their own products with exact stock"""
+    
+    products = Product.objects.filter(
+        owner=request.user
+    ).select_related('category').order_by('-created_at')
+    
+    context = {
+        'products': products,
+        'total_products': products.count(),
+        'pending_count': products.filter(status='pending_approval').count(),
+        'approved_count': products.filter(status='approved').count(),
+        'rejected_count': products.filter(status='rejected').count(),
+        'out_of_stock_count': products.filter(exact_quantity=0).count(),
+        'draft_count': products.filter(status='draft').count(),
+    }
+    return render(request, 'products/supplier_products.html', context)
+
+
 @login_required
 @role_required(['supplier'])
 def supplier_product_create_view(request):
@@ -229,6 +323,90 @@ def supplier_product_create_view(request):
     return render(request, 'products/create.html', {'form': form})
 
 
+@login_required
+@role_required(['supplier'])
+def supplier_product_update_view(request, product_id):
+    """Supplier update their product (resets approval status)"""
+    
+    product = get_object_or_404(Product, id=product_id, owner=request.user)
+    
+    if product.status == 'approved':
+        messages.warning(request, 'Editing an approved product will require re-approval from admin.')
+    
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            product = form.save(commit=False)
+            # Reset approval status
+            if product.status == 'approved':
+                product.status = 'pending_approval'
+                product.approval_status = 'pending_approval'
+                product.approved_by = None
+                product.approved_at = None
+            product.save()
+            
+            # Notify admins about product update pending re-approval
+            admins = User.objects.filter(role='admin')
+            for admin in admins:
+                NotificationService.create_notification(
+                    user=admin,
+                    title="Product Update Pending Approval",
+                    message=f"{getattr(request.user, 'business_name', request.user.email)} has updated product: {product.name}",
+                    notification_type='product',
+                    priority='medium',
+                    link='/products/admin/approve/'
+                )
+            
+            messages.success(request, 'Product updated successfully. It will be reviewed by admin.')
+            return redirect('products:supplier_products')
+    else:
+        form = ProductForm(instance=product)
+    
+    return render(request, 'products/update.html', {
+        'form': form,
+        'product': product
+    })
+
+
+@login_required
+@role_required(['supplier'])
+def supplier_product_stock_update_view(request, product_id):
+    """Supplier update exact stock quantity"""
+    
+    product = get_object_or_404(Product, id=product_id, owner=request.user)
+    
+    if request.method == 'POST':
+        form = ProductStockUpdateForm(request.POST, instance=product)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Stock updated to {product.exact_quantity} units')
+            
+            # Notify admin about low stock if applicable
+            if product.is_low_stock():
+                admins = User.objects.filter(role='admin')
+                for admin in admins:
+                    NotificationService.create_notification(
+                        user=admin,
+                        title=f"Low Stock Alert: {product.name}",
+                        message=f"Product '{product.name}' from {getattr(product.owner, 'business_name', product.owner.email)} has only {product.exact_quantity} units remaining.",
+                        notification_type='alert',
+                        priority='high',
+                        link=f'/dashboard/admin/products/'
+                    )
+            
+            return redirect('products:supplier_products')
+    else:
+        form = ProductStockUpdateForm(instance=product)
+    
+    return render(request, 'products/update_stock.html', {
+        'form': form,
+        'product': product
+    })
+
+
+# ============================================================
+# ADMIN PRODUCT APPROVAL
+# ============================================================
 @login_required
 @role_required(['admin'])
 def admin_product_approve_list_view(request):
@@ -325,108 +503,9 @@ def admin_quick_approve_all_view(request):
     return redirect('products:admin_approve_list')
 
 
-@login_required
-@role_required(['supplier'])
-def supplier_products_view(request):
-    """Supplier view their own products with exact stock"""
-    
-    products = Product.objects.filter(
-        owner=request.user
-    ).select_related('category').order_by('-created_at')
-    
-    context = {
-        'products': products,
-        'total_products': products.count(),
-        'pending_count': products.filter(status='pending_approval').count(),
-        'approved_count': products.filter(status='approved').count(),
-        'rejected_count': products.filter(status='rejected').count(),
-        'out_of_stock_count': products.filter(exact_quantity=0).count(),
-        'draft_count': products.filter(status='draft').count(),
-    }
-    return render(request, 'products/supplier_products.html', context)
-
-
-@login_required
-@role_required(['supplier'])
-def supplier_product_update_view(request, product_id):
-    """Supplier update their product (resets approval status)"""
-    
-    product = get_object_or_404(Product, id=product_id, owner=request.user)
-    
-    if product.status == 'approved':
-        messages.warning(request, 'Editing an approved product will require re-approval from admin.')
-    
-    if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES, instance=product)
-        if form.is_valid():
-            product = form.save(commit=False)
-            # Reset approval status
-            if product.status == 'approved':
-                product.status = 'pending_approval'
-                product.approval_status = 'pending_approval'
-                product.approved_by = None
-                product.approved_at = None
-            product.save()
-            
-            # Notify admins about product update pending re-approval
-            admins = User.objects.filter(role='admin')
-            for admin in admins:
-                NotificationService.create_notification(
-                    user=admin,
-                    title="Product Update Pending Approval",
-                    message=f"{getattr(request.user, 'business_name', request.user.email)} has updated product: {product.name}",
-                    notification_type='product',
-                    priority='medium',
-                    link='/products/admin/approve/'
-                )
-            
-            messages.success(request, 'Product updated successfully. It will be reviewed by admin.')
-            return redirect('products:supplier_products')
-    else:
-        form = ProductForm(instance=product)
-    
-    return render(request, 'products/update.html', {
-        'form': form,
-        'product': product
-    })
-
-
-@login_required
-@role_required(['supplier'])
-def supplier_product_stock_update_view(request, product_id):
-    """Supplier update exact stock quantity"""
-    
-    product = get_object_or_404(Product, id=product_id, owner=request.user)
-    
-    if request.method == 'POST':
-        form = ProductStockUpdateForm(request.POST, instance=product)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'Stock updated to {product.exact_quantity} units')
-            
-            # Notify admin about low stock if applicable
-            if product.is_low_stock():
-                admins = User.objects.filter(role='admin')
-                for admin in admins:
-                    NotificationService.create_notification(
-                        user=admin,
-                        title=f"Low Stock Alert: {product.name}",
-                        message=f"Product '{product.name}' from {getattr(product.owner, 'business_name', product.owner.email)} has only {product.exact_quantity} units remaining.",
-                        notification_type='alert',
-                        priority='high',
-                        link=f'/dashboard/admin/products/'
-                    )
-            
-            return redirect('products:supplier_products')
-    else:
-        form = ProductStockUpdateForm(instance=product)
-    
-    return render(request, 'products/update_stock.html', {
-        'form': form,
-        'product': product
-    })
-
-
+# ============================================================
+# PRODUCT REVIEWS
+# ============================================================
 @login_required
 def add_review_view(request, product_id):
     """Customer add product review"""
@@ -462,6 +541,25 @@ def add_review_view(request, product_id):
     })
 
 
+# ============================================================
+# WISHLIST
+# ============================================================
+@login_required
+@role_required(['customer'])
+def wishlist_view(request):
+    """View customer wishlist"""
+    
+    wishlist_items = Wishlist.objects.filter(
+        customer=request.user
+    ).select_related('product').order_by('-added_at')
+    
+    context = {
+        'wishlist_items': wishlist_items,
+        'total_items': wishlist_items.count(),
+    }
+    return render(request, 'products/wishlist.html', context)
+
+
 @login_required
 @role_required(['customer'])
 def add_to_wishlist_view(request, product_id):
@@ -484,22 +582,6 @@ def add_to_wishlist_view(request, product_id):
 
 @login_required
 @role_required(['customer'])
-def wishlist_view(request):
-    """View customer wishlist"""
-    
-    wishlist_items = Wishlist.objects.filter(
-        customer=request.user
-    ).select_related('product').order_by('-added_at')
-    
-    context = {
-        'wishlist_items': wishlist_items,
-        'total_items': wishlist_items.count(),
-    }
-    return render(request, 'products/wishlist.html', context)
-
-
-@login_required
-@role_required(['customer'])
 def remove_from_wishlist_view(request, product_id):
     """Remove product from wishlist"""
     
@@ -512,6 +594,9 @@ def remove_from_wishlist_view(request, product_id):
     return redirect('products:wishlist')
 
 
+# ============================================================
+# SEARCH & UTILITIES
+# ============================================================
 def search_products_view(request):
     """AJAX search endpoint for products"""
     
@@ -537,24 +622,6 @@ def search_products_view(request):
         } for p in product_queryset]
     
     return JsonResponse({'products': products})
-
-
-def category_products_view(request, slug):
-    """View products by category"""
-    
-    category = get_object_or_404(Category, slug=slug, is_active=True)
-    
-    products = Product.objects.filter(
-        category=category,
-        status='approved'
-    ).order_by('-created_at')
-    
-    context = {
-        'category': category,
-        'products': products,
-        'total_count': products.count(),
-    }
-    return render(request, 'products/category_list.html', context)
 
 
 def high_performance_products_view(request):

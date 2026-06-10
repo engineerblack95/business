@@ -10,10 +10,14 @@ urlpatterns = [
     path('', views.product_list_view, name='list'),
     path('search/', views.search_products_view, name='search'),
     path('high-performance/', views.high_performance_products_view, name='high_performance'),
+    
+    # ============================================================
+    # CATEGORY VIEW - FIXED to use the correct view
+    # ============================================================
     path('category/<slug:slug>/', views.category_products_view, name='category'),
     
     # ============================================================
-    # CUSTOMER VIEWS - SPECIFIC PATHS (MUST COME BEFORE <slug:slug>)
+    # CUSTOMER VIEWS
     # ============================================================
     path('wishlist/', views.wishlist_view, name='wishlist'),
     path('wishlist/add/<uuid:product_id>/', views.add_to_wishlist_view, name='add_to_wishlist'),
@@ -36,7 +40,7 @@ urlpatterns = [
     path('admin/approve-all/', views.admin_quick_approve_all_view, name='admin_approve_all'),
     
     # ============================================================
-    # PRODUCT DETAIL - MUST BE LAST (CATCH-ALL)
+    # PRODUCT DETAIL - MUST BE LAST
     # ============================================================
     path('<slug:slug>/', views.product_detail_view, name='detail'),
 ]
