@@ -15,9 +15,12 @@ from notifications.models import Notification
 from .forms import NotificationFilterForm, ProductQuickEditForm
 
 from products.models import Product, Category
-from orders.models import Order, OrderItem, CommissionEarning, WithdrawalRequest
+from orders.models import Order, OrderItem, CommissionEarning, WithdrawalRequest, Wallet, WalletTransaction
 from accounts.models import User
 from team.models import TeamMember, TeamTask
+
+# Import wallet service
+from orders.services.wallet_service import WalletService
 
 
 @login_required
@@ -37,7 +40,7 @@ def dashboard_redirect_view(request):
 @login_required
 @role_required(['admin'])
 def admin_dashboard_view(request):
-    """Admin main dashboard"""
+    """Admin main dashboard with wallet integration"""
     
     analytics = DashboardAnalytics.get_admin_analytics()
     
@@ -55,7 +58,7 @@ def admin_dashboard_view(request):
     
     # Get recent withdrawal requests
     recent_withdrawals = WithdrawalRequest.objects.filter(
-        admin=request.user
+        user=request.user
     ).order_by('-created_at')[:5]
     
     # Get team statistics
@@ -68,12 +71,18 @@ def admin_dashboard_view(request):
         ).count(),
     }
     
+    # Get wallet summary for admin
+    wallet_summary = WalletService.get_admin_commission_summary(request.user)
+    tax_summary = WalletService.get_tax_summary()
+    
     context = {
         'analytics': analytics,
         'unread_notifications': unread_notifications,
         'recent_suppliers': recent_applications,
         'recent_withdrawals': recent_withdrawals,
         'team_stats': team_stats,
+        'wallet_summary': wallet_summary,
+        'tax_summary': tax_summary,
         'section': 'overview',
     }
     return render(request, 'dashboard/admin_dashboard.html', context)
@@ -81,7 +90,7 @@ def admin_dashboard_view(request):
 
 @login_required
 def supplier_dashboard_view(request):
-    """Supplier main dashboard"""
+    """Supplier main dashboard with wallet integration"""
     
     # Check if user is a supplier
     if request.user.role != 'supplier' and not request.user.is_approved_supplier:
@@ -104,11 +113,15 @@ def supplier_dashboard_view(request):
         items__product__owner=request.user
     ).distinct().order_by('-created_at')[:10]
     
+    # Get wallet summary for supplier
+    wallet_summary = WalletService.get_supplier_earnings_summary(request.user)
+    
     context = {
         'analytics': analytics,
         'unread_notifications': unread_notifications,
         'recent_products': recent_products,
         'recent_orders': recent_orders,
+        'wallet_summary': wallet_summary,
         'section': 'overview',
     }
     return render(request, 'dashboard/supplier_dashboard.html', context)
@@ -546,6 +559,259 @@ def get_team_member_details_api(request, user_id):
     return JsonResponse(data)
 
 
+# ==================== WALLET & EARNINGS VIEWS (NEW) ====================
+
+@login_required
+def supplier_wallet_view(request):
+    """Supplier view their wallet balance and transactions"""
+    
+    if request.user.role != 'supplier':
+        messages.error(request, 'Access denied. Supplier only.')
+        return redirect('dashboard:home')
+    
+    # Get wallet balance
+    wallet_info = WalletService.get_wallet_balance(request.user, 'supplier')
+    
+    # Get recent transactions
+    transactions = WalletService.get_wallet_transactions(
+        request.user, 
+        wallet_type='supplier', 
+        limit=30
+    )
+    
+    # Get withdrawal requests
+    withdrawals = WithdrawalRequest.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:20]
+    
+    # Get earnings summary
+    earnings_summary = WalletService.get_supplier_earnings_summary(request.user)
+    
+    context = {
+        'wallet': wallet_info,
+        'transactions': transactions,
+        'withdrawals': withdrawals,
+        'earnings_summary': earnings_summary,
+        'minimum_withdrawal': WalletService.MINIMUM_WITHDRAWAL,
+        'section': 'wallet',
+    }
+    return render(request, 'dashboard/supplier_wallet.html', context)
+
+
+@login_required
+def supplier_earnings_view(request):
+    """Supplier earnings analytics and reports"""
+    
+    if request.user.role != 'supplier':
+        messages.error(request, 'Access denied. Supplier only.')
+        return redirect('dashboard:home')
+    
+    # Get earnings summary
+    earnings_summary = WalletService.get_supplier_earnings_summary(request.user)
+    
+    # Get all completed payouts (orders delivered)
+    from orders.models import OrderItem
+    completed_orders = OrderItem.objects.filter(
+        product__owner=request.user,
+        is_supplier_product=True,
+        order__order_status='delivered'
+    ).select_related('order', 'product').order_by('-created_at')
+    
+    # Calculate monthly earnings
+    monthly_earnings = completed_orders.filter(
+        created_at__year=timezone.now().year
+    ).values('created_at__month').annotate(
+        total=Sum('supplier_payout_amount'),
+        count=Count('id')
+    ).order_by('-created_at__month')
+    
+    # Get top products by earnings
+    top_products = completed_orders.values(
+        'product__name',
+        'product__id'
+    ).annotate(
+        total_earned=Sum('supplier_payout_amount'),
+        quantity_sold=Sum('quantity')
+    ).order_by('-total_earned')[:10]
+    
+    context = {
+        'earnings_summary': earnings_summary,
+        'completed_orders': completed_orders[:50],
+        'monthly_earnings': monthly_earnings,
+        'top_products': top_products,
+        'section': 'earnings',
+    }
+    return render(request, 'dashboard/supplier_earnings.html', context)
+
+
+@login_required
+@role_required(['admin'])
+def admin_wallet_view(request):
+    """Admin view their commission wallet"""
+    
+    # Get wallet balance
+    wallet_info = WalletService.get_wallet_balance(request.user, 'admin')
+    
+    # Get recent transactions
+    transactions = WalletService.get_wallet_transactions(
+        request.user, 
+        wallet_type='admin', 
+        limit=30
+    )
+    
+    # Get withdrawal requests
+    withdrawals = WithdrawalRequest.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:20]
+    
+    # Get commission summary
+    commission_summary = WalletService.get_admin_commission_summary(request.user)
+    
+    # Get tax summary
+    tax_summary = WalletService.get_tax_summary()
+    
+    context = {
+        'wallet': wallet_info,
+        'transactions': transactions,
+        'withdrawals': withdrawals,
+        'commission_summary': commission_summary,
+        'tax_summary': tax_summary,
+        'minimum_withdrawal': WalletService.MINIMUM_WITHDRAWAL,
+        'section': 'wallet',
+    }
+    return render(request, 'dashboard/admin_wallet.html', context)
+
+
+@login_required
+@role_required(['admin'])
+def admin_commission_view(request):
+    """Admin commission analytics and reports"""
+    
+    # Get commission summary
+    commission_summary = WalletService.get_admin_commission_summary(request.user)
+    
+    # Get all commission transactions
+    admin_wallet = Wallet.objects.filter(user=request.user, wallet_type='admin').first()
+    
+    commission_transactions = []
+    if admin_wallet:
+        commission_transactions = WalletTransaction.objects.filter(
+            wallet=admin_wallet,
+            category='commission',
+            transaction_type='credit'
+        ).select_related('order').order_by('-created_at')[:100]
+    
+    # Calculate monthly commission
+    monthly_commission = []
+    if admin_wallet:
+        monthly_commission = WalletTransaction.objects.filter(
+            wallet=admin_wallet,
+            category='commission',
+            transaction_type='credit',
+            created_at__year=timezone.now().year
+        ).values('created_at__month').annotate(
+            total=Sum('amount'),
+            count=Count('id')
+        ).order_by('-created_at__month')
+    
+    # Get top suppliers by commission paid
+    top_suppliers = WalletTransaction.objects.filter(
+        wallet=admin_wallet,
+        category='commission',
+        transaction_type='credit'
+    ).values('order_item__product__owner__email').annotate(
+        total_commission=Sum('amount'),
+        product_count=Count('order_item__product', distinct=True)
+    ).order_by('-total_commission')[:10]
+    
+    # Get tax summary
+    tax_summary = WalletService.get_tax_summary()
+    
+    context = {
+        'commission_summary': commission_summary,
+        'commission_transactions': commission_transactions,
+        'monthly_commission': monthly_commission,
+        'top_suppliers': top_suppliers,
+        'tax_summary': tax_summary,
+        'section': 'commission',
+    }
+    return render(request, 'dashboard/admin_commission.html', context)
+
+
+@login_required
+def request_wallet_withdrawal_view(request):
+    """User request withdrawal from their wallet"""
+    
+    # Determine wallet type based on role
+    if request.user.role == 'supplier':
+        wallet_type = 'supplier'
+        redirect_url = 'dashboard:supplier_wallet'
+    elif request.user.role == 'admin':
+        wallet_type = 'admin'
+        redirect_url = 'dashboard:admin_wallet'
+    else:
+        messages.error(request, 'Only suppliers and admins can request withdrawals.')
+        return redirect('dashboard:home')
+    
+    if request.method == 'POST':
+        amount = request.POST.get('amount')
+        phone_number = request.POST.get('phone_number', '')
+        payment_method = request.POST.get('payment_method', 'mobile_money')
+        notes = request.POST.get('notes', '')
+        
+        try:
+            amount = Decimal(amount)
+        except:
+            messages.error(request, 'Invalid amount.')
+            return redirect(redirect_url)
+        
+        result = WalletService.create_withdrawal_request(
+            user=request.user,
+            amount=amount,
+            phone_number=phone_number,
+            payment_method=payment_method,
+            notes=notes
+        )
+        
+        if result['success']:
+            messages.success(request, f'Withdrawal request of {amount:,.0f} FRW submitted successfully.')
+        else:
+            messages.error(request, result['error'])
+    
+    return redirect(redirect_url)
+
+
+@login_required
+@role_required(['admin'])
+def process_withdrawal_request_view(request, withdrawal_id):
+    """Admin process a withdrawal request (approve/reject)"""
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'approve':
+            result = WalletService.process_withdrawal(
+                withdrawal_id=withdrawal_id,
+                admin_user=request.user,
+                approve=True
+            )
+        else:
+            reason = request.POST.get('rejection_reason', 'Not specified')
+            result = WalletService.process_withdrawal(
+                withdrawal_id=withdrawal_id,
+                admin_user=request.user,
+                approve=False,
+                rejection_reason=reason
+            )
+        
+        if result['success']:
+            messages.success(request, result['message'])
+        else:
+            messages.error(request, result.get('error', 'Failed to process withdrawal'))
+    
+    return redirect('dashboard:admin_wallet')
+
+
 # ==================== NOTIFICATION VIEWS ====================
 
 @login_required
@@ -874,7 +1140,7 @@ def reject_supplier_view(request, user_id):
     return redirect(f"{reverse('dashboard:manage_suppliers')}?pending=true")
 
 
-# ==================== ACTIVITY LOGS VIEW (FIXED) ====================
+# ==================== ACTIVITY LOGS VIEW ====================
 
 @login_required
 @role_required(['admin'])
@@ -886,14 +1152,12 @@ def activity_logs_view(request):
     # Get all login history with user details
     logs = UserLoginHistory.objects.select_related('user').order_by('-login_time')
     
-    # Apply filters - FIXED: Removed invalid 'activity_type' filter
-    # The UserLoginHistory model does NOT have an activity_type field
-    
+    # Apply filters
     user_id = request.GET.get('user')
     if user_id:
         logs = logs.filter(user_id=user_id)
     
-    # Device filter (valid field)
+    # Device filter
     device_type = request.GET.get('device')
     if device_type:
         logs = logs.filter(device_type=device_type)
@@ -997,16 +1261,13 @@ def reports_view(request):
         start_date_str = request.GET.get('start_date')
         end_date_str = request.GET.get('end_date')
         
-        # Validate that start_date and end_date are provided
         if start_date_str and end_date_str:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
         else:
-            # Default to last 30 days if no dates provided
             start_date = timezone.now().date() - timedelta(days=30)
             end_date = timezone.now().date()
     
-    # Ensure dates are valid
     if not start_date or not end_date:
         start_date = timezone.now().date() - timedelta(days=30)
         end_date = timezone.now().date()

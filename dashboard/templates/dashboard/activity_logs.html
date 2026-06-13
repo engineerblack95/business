@@ -3,121 +3,13 @@
 
 {% block title %}Activity Logs - HerosTechnology{% endblock %}
 
-{% block extra_css %}
-<style>
-    .log-table {
-        font-size: 0.85rem;
-    }
-    .log-table th {
-        background-color: #f8f9fa;
-        font-weight: 600;
-        white-space: nowrap;
-        padding: 12px 10px;
-    }
-    .log-table td {
-        vertical-align: middle;
-        padding: 12px 10px;
-    }
-    
-    /* Badge Styles */
-    .device-badge, .os-badge, .browser-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    .device-pc { background: #e3f2fd; color: #1976d2; }
-    .device-smartphone { background: #e8f5e9; color: #388e3c; }
-    .device-tablet { background: #fff3e0; color: #f57c00; }
-    .device-unknown { background: #f5f5f5; color: #757575; }
-    
-    .os-windows { background: #e8eaf6; color: #3949ab; }
-    .os-macos { background: #fce4ec; color: #c2185b; }
-    .os-linux { background: #fff3e0; color: #f57c00; }
-    .os-android { background: #e8f5e9; color: #43a047; }
-    .os-ios { background: #e3f2fd; color: #1976d2; }
-    .os-unknown { background: #f5f5f5; color: #757575; }
-    
-    .browser-chrome { background: #fff8e1; color: #f9a825; }
-    .browser-firefox { background: #ffebee; color: #e53935; }
-    .browser-safari { background: #e3f2fd; color: #1976d2; }
-    .browser-edge { background: #e8eaf6; color: #3949ab; }
-    .browser-unknown { background: #f5f5f5; color: #757575; }
-    
-    .location-badge {
-        background: #f3e5f5;
-        color: #7b1fa2;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-    }
-    
-    .ip-code {
-        font-family: 'Monaco', 'Menlo', monospace;
-        font-size: 0.75rem;
-        background: #f8f9fa;
-        padding: 4px 8px;
-        border-radius: 6px;
-        border: 1px solid #e9ecef;
-    }
-    
-    .session-badge {
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-    }
-    .session-active { background: #fff3e0; color: #f57c00; }
-    .session-ended { background: #e8f5e9; color: #388e3c; }
-    
-    .filter-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-    
-    .stats-card {
-        background: white;
-        border-radius: 12px;
-        padding: 15px;
-        text-align: center;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        transition: transform 0.3s ease;
-    }
-    .stats-card:hover {
-        transform: translateY(-3px);
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: #f8f9fa;
-        cursor: pointer;
-    }
-    
-    @media (max-width: 1200px) {
-        .log-table {
-            font-size: 0.75rem;
-        }
-        .log-table th, .log-table td {
-            padding: 8px 6px;
-        }
-    }
-</style>
-{% endblock %}
-
 {% block dashboard_content %}
+<!-- Header -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-history"></i> Activity Logs</h2>
     <div>
-        <span class="badge bg-primary">Total: {{ logs.paginator.count }} sessions</span>
-        <button class="btn btn-secondary btn-sm ms-2" onclick="window.print()">
+        <span class="badge bg-primary me-2">Total: {{ logs.paginator.count }} sessions</span>
+        <button class="btn btn-secondary btn-sm" onclick="window.print()">
             <i class="fas fa-print"></i> Print
         </button>
     </div>
@@ -125,90 +17,122 @@
 
 <!-- Statistics Cards -->
 <div class="row mb-4">
-    <div class="col-md-3">
+    <div class="col-md-3 col-sm-6">
         <div class="stats-card">
-            <i class="fas fa-users fa-2x text-primary mb-2"></i>
-            <h4 class="mb-0">{{ users|length }}</h4>
-            <small class="text-muted">Total Users</small>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Total Users</small>
+                    <h3 class="mb-0">{{ users|length }}</h3>
+                </div>
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 col-sm-6">
         <div class="stats-card">
-            <i class="fas fa-laptop fa-2x text-success mb-2"></i>
-            <h4 class="mb-0">{{ logs.paginator.count }}</h4>
-            <small class="text-muted">Total Sessions</small>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Total Sessions</small>
+                    <h3 class="mb-0">{{ logs.paginator.count }}</h3>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-laptop"></i>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 col-sm-6">
         <div class="stats-card">
-            <i class="fas fa-circle fa-2x text-warning mb-2"></i>
-            <h4 class="mb-0">{{ logs|length }}</h4>
-            <small class="text-muted">Displayed</small>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Displayed</small>
+                    <h3 class="mb-0">{{ logs|length }}</h3>
+                </div>
+                <div class="stats-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-eye"></i>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 col-sm-6">
         <div class="stats-card">
-            <i class="fas fa-globe fa-2x text-info mb-2"></i>
-            <h4 class="mb-0">{{ logs.values_list|length }}</h4>
-            <small class="text-muted">Unique Locations</small>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Unique Locations</small>
+                    <h3 class="mb-0">{{ logs.values_list|length }}</h3>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-globe"></i>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Filters -->
-<div class="filter-card">
-    <form method="get" class="row g-3">
-        <div class="col-md-2">
-            <label class="form-label">Activity Type</label>
-            <select name="type" class="form-select">
-                <option value="">All Types</option>
-                <option value="login" {% if selected_type == 'login' %}selected{% endif %}>Login</option>
-                <option value="logout" {% if selected_type == 'logout' %}selected{% endif %}>Logout</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">User</label>
-            <select name="user" class="form-select">
-                <option value="">All Users</option>
-                {% for user in users %}
-                <option value="{{ user.id }}" {% if selected_user == user.id|stringformat:"s" %}selected{% endif %}>
-                    {{ user.email }} ({{ user.get_role_display }})
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Device Type</label>
-            <select name="device" class="form-select">
-                <option value="">All Devices</option>
-                <option value="pc">PC/Laptop</option>
-                <option value="smartphone">Smartphone</option>
-                <option value="tablet">Tablet</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Date From</label>
-            <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Date To</label>
-            <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">&nbsp;</label>
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="fas fa-filter"></i> Apply Filters
-            </button>
-        </div>
-    </form>
+<!-- Filters Card -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-filter"></i> Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Activity Type</label>
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    <option value="login" {% if selected_type == 'login' %}selected{% endif %}>Login</option>
+                    <option value="logout" {% if selected_type == 'logout' %}selected{% endif %}>Logout</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">User</label>
+                <select name="user" class="form-select form-select-sm">
+                    <option value="">All Users</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if selected_user == user.id|stringformat:"s" %}selected{% endif %}>
+                        {{ user.email|truncatechars:20 }} ({{ user.get_role_display }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Device Type</label>
+                <select name="device" class="form-select form-select-sm">
+                    <option value="">All Devices</option>
+                    <option value="pc" {% if selected_device == 'pc' %}selected{% endif %}>PC/Laptop</option>
+                    <option value="smartphone" {% if selected_device == 'smartphone' %}selected{% endif %}>Smartphone</option>
+                    <option value="tablet" {% if selected_device == 'tablet' %}selected{% endif %}>Tablet</option>
+                    <option value="unknown" {% if selected_device == 'unknown' %}selected{% endif %}>Unknown</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Date From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Date To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="fas fa-search"></i> Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Activity Logs Table -->
 <div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Login History</h5>
+    </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover log-table mb-0">
-                <thead>
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
                     <tr>
                         <th><i class="fas fa-calendar-alt"></i> Date & Time</th>
                         <th><i class="fas fa-user"></i> User</th>
@@ -224,21 +148,23 @@
                     {% for log in logs %}
                     <tr>
                         <!-- Date & Time -->
-                        <td style="white-space: nowrap;">
-                            <div class="fw-bold">{{ log.login_time|date:"Y-m-d H:i:s" }}</div>
-                            <small class="text-muted">{{ log.login_time|date:"l" }}</small>
+                        <td class="small">
+                            <strong>{{ log.login_time|date:"Y-m-d H:i:s" }}</strong>
+                            <br>
+                            <span class="text-muted">{{ log.login_time|date:"l" }}</span>
                         </td>
                         
                         <!-- User -->
                         <td>
-                            <div class="fw-bold">{{ log.user.email }}</div>
-                            <small class="text-muted">{{ log.user.get_role_display }}</small>
+                            <strong>{{ log.user.email|truncatechars:25 }}</strong>
+                            <br>
+                            <span class="badge bg-secondary">{{ log.user.get_role_display }}</span>
                         </td>
                         
                         <!-- Device -->
                         <td>
-                            <span class="device-badge device-{{ log.device_type|default:'unknown' }}">
-                                <i class="fas fa-{% if log.device_type == 'smartphone' %}mobile-alt{% elif log.device_type == 'tablet' %}tablet-alt{% else %}desktop{% endif %}"></i>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-{% if log.device_type == 'smartphone' %}mobile-alt{% elif log.device_type == 'tablet' %}tablet-alt{% else %}desktop{% endif %} me-1"></i>
                                 {{ log.get_device_type_display|default:log.device_type|title }}
                             </span>
                             {% if log.device_brand %}
@@ -248,8 +174,8 @@
                         
                         <!-- Operating System -->
                         <td>
-                            <span class="os-badge os-{{ log.os_type|default:'unknown' }}">
-                                <i class="fab fa-{% if log.os_type == 'windows' %}windows{% elif log.os_type == 'macos' %}apple{% elif log.os_type == 'linux' %}linux{% elif log.os_type == 'android' %}android{% elif log.os_type == 'ios' %}apple{% else %}windows{% endif %}"></i>
+                            <span class="badge bg-light text-dark">
+                                <i class="fab fa-{% if log.os_type == 'windows' %}windows{% elif log.os_type == 'macos' %}apple{% elif log.os_type == 'linux' %}linux{% elif log.os_type == 'android' %}android{% elif log.os_type == 'ios' %}apple{% else %}windows{% endif %} me-1"></i>
                                 {{ log.get_os_type_display|default:log.os_type|title }}
                             </span>
                             {% if log.os_display %}
@@ -259,9 +185,9 @@
                         
                         <!-- Browser -->
                         <td>
-                            <span class="browser-badge browser-{{ log.browser|default:'unknown'|lower }}">
-                                <i class="fab fa-{% if 'Chrome' in log.browser %}chrome{% elif 'Firefox' in log.browser %}firefox{% elif 'Safari' in log.browser %}safari{% elif 'Edge' in log.browser %}edge{% else %}globe{% endif %}"></i>
-                                {{ log.browser|default:"Unknown" }}
+                            <span class="badge bg-light text-dark">
+                                <i class="fab fa-{% if 'Chrome' in log.browser %}chrome{% elif 'Firefox' in log.browser %}firefox{% elif 'Safari' in log.browser %}safari{% elif 'Edge' in log.browser %}edge{% else %}globe{% endif %} me-1"></i>
+                                {{ log.browser|default:"Unknown"|truncatechars:15 }}
                             </span>
                             {% if log.browser_version %}
                             <br><small class="text-muted">v{{ log.browser_version }}</small>
@@ -271,43 +197,33 @@
                         <!-- Location -->
                         <td>
                             {% if log.location_country %}
-                            <span class="location-badge">
-                                <i class="fas fa-map-marker-alt"></i>
-                                {{ log.location_city|default:"" }}{% if log.location_city and log.location_country %}, {% endif %}{{ log.location_country }}
+                            <span class="badge bg-info bg-opacity-10 text-info">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                {% if log.location_city %}{{ log.location_city }}, {% endif %}{{ log.location_country }}
                             </span>
-                            {% if log.location_latitude %}
-                            <br><small class="text-muted">
-                                <i class="fas fa-crosshairs"></i> 
-                                {{ log.location_latitude|floatformat:4 }}, {{ log.location_longitude|floatformat:4 }}
-                            </small>
-                            {% endif %}
                             {% else %}
-                            <span class="text-muted">
-                                <i class="fas fa-question-circle"></i> Unknown
-                            </span>
+                            <span class="text-muted">Unknown</span>
                             {% endif %}
                         </td>
                         
                         <!-- IP Address -->
                         <td>
-                            <code class="ip-code">{{ log.ip_address }}</code>
+                            <code class="small">{{ log.ip_address }}</code>
                         </td>
                         
                         <!-- Session Duration -->
                         <td>
                             {% if log.logout_time %}
-                            <span class="session-badge session-ended">
-                                <i class="fas fa-check-circle"></i> 
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i> 
                                 {{ log.get_duration|default:"N/A" }} min
                             </span>
                             <br>
-                            <small class="text-muted">Ended: {{ log.logout_time|date:"H:i:s" }}</small>
+                            <small class="text-muted">{{ log.logout_time|date:"H:i:s" }}</small>
                             {% else %}
-                            <span class="session-badge session-active">
-                                <i class="fas fa-circle"></i> Active
+                            <span class="badge bg-warning">
+                                <i class="fas fa-circle me-1"></i> Active
                             </span>
-                            <br>
-                            <small class="text-muted">Current session</small>
                             {% endif %}
                         </td>
                     </tr>
@@ -332,7 +248,7 @@
             <ul class="pagination justify-content-center mb-0">
                 {% if logs.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ logs.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_user %}&user={{ selected_user }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                    <a class="page-link" href="?page={{ logs.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                         <i class="fas fa-chevron-left"></i> Previous
                     </a>
                 </li>
@@ -346,7 +262,9 @@
                     {% if logs.number == num %}
                     <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% elif num > logs.number|add:'-3' and num < logs.number|add:'3' %}
-                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                    </li>
                     {% endif %}
                 {% endfor %}
                 
@@ -366,4 +284,55 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Style for consistency -->
+<style>
+    .stats-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--secondary-color);
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .stats-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .table th {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+    }
+    
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        font-size: 0.8rem;
+    }
+    
+    @media (max-width: 768px) {
+        .table td {
+            padding: 0.5rem;
+            font-size: 0.7rem;
+        }
+        .stats-card {
+            padding: 1rem;
+        }
+    }
+</style>
 {% endblock %}

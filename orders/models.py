@@ -278,6 +278,10 @@ class OrderItem(models.Model):
             commission_rate = Decimal(str(getattr(settings, 'COMMISSION_RATE', 7))) / Decimal('100')
             self.commission_amount = (self.base_price * commission_rate * self.quantity).quantize(Decimal('0.01'))
             self.supplier_payout_amount = ((self.base_price - (self.base_price * commission_rate)) * self.quantity).quantize(Decimal('0.01'))
+        else:
+            # Admin products: No commission
+            self.commission_amount = Decimal('0.00')
+            self.supplier_payout_amount = Decimal('0.00')
         
         super().save(*args, **kwargs)
     
@@ -397,10 +401,6 @@ class CommissionEarning(models.Model):
         return f"Commission {self.amount} from Order {self.order_item.order.order_number}"
 
 
-# ============================================================
-# ADDED: SupplierPayout Model (FIX FOR IMPORT ERROR)
-# ============================================================
-
 class SupplierPayout(models.Model):
     """Track supplier payouts for their products"""
     
@@ -422,7 +422,7 @@ class SupplierPayout(models.Model):
     
     # Link to order item
     order_item = models.OneToOneField(
-        'OrderItem', 
+        OrderItem, 
         on_delete=models.CASCADE, 
         related_name='supplier_payout'
     )
@@ -462,79 +462,262 @@ class SupplierPayout(models.Model):
         super().save(*args, **kwargs)
 
 
-class WithdrawalRequest(models.Model):
-    """Admin withdrawal requests for accumulated commission"""
+# ============================================================
+# NEW: WALLET SYSTEM MODELS (Added for auto-split payment)
+# ============================================================
+
+class Wallet(models.Model):
+    """User wallet for storing balances - Supports admin, supplier, and tax wallets"""
     
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('completed', 'Completed'),
-        ('rejected', 'Rejected'),
+    WALLET_TYPES = [
+        ('admin', 'Admin Commission Wallet'),
+        ('supplier', 'Supplier Earnings Wallet'),
+        ('tax', 'Tax Collection Wallet'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    admin = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
-        related_name='withdrawal_requests'
-    )
-    
-    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
-    mobile_money_number = models.CharField(max_length=20)
-    
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    rejection_reason = models.TextField(blank=True)
-    
-    reviewed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
         blank=True,
-        related_name='reviewed_withdrawals'
+        related_name='wallet'
     )
-    reviewed_at = models.DateTimeField(null=True, blank=True)
-    
-    request_reference = models.CharField(max_length=100, unique=True, editable=False)
-    transaction_reference = models.CharField(max_length=100, blank=True)
-    notes = models.TextField(blank=True)
+    wallet_type = models.CharField(max_length=20, choices=WALLET_TYPES)
+    balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    pending_balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     
     created_at = models.DateTimeField(auto_now_add=True)
-    processed_at = models.DateTimeField(null=True, blank=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'wallet_type']),
+            models.Index(fields=['wallet_type']),
+        ]
+    
+    def __str__(self):
+        if self.user:
+            return f"{self.user.email} - {self.get_wallet_type_display()}: {self.balance:,.0f} FRW"
+        return f"System - {self.get_wallet_type_display()}: {self.balance:,.0f} FRW"
+    
+    def add_balance(self, amount):
+        """Add money to wallet"""
+        self.balance += amount
+        self.save(update_fields=['balance', 'updated_at'])
+        return True
+    
+    def deduct_balance(self, amount):
+        """Deduct money from wallet"""
+        if self.balance >= amount:
+            self.balance -= amount
+            self.save(update_fields=['balance', 'updated_at'])
+            return True
+        return False
+    
+    def add_pending(self, amount):
+        """Add to pending balance (for withdrawals)"""
+        if self.balance >= amount:
+            self.balance -= amount
+            self.pending_balance += amount
+            self.save(update_fields=['balance', 'pending_balance', 'updated_at'])
+            return True
+        return False
+    
+    def complete_pending(self, amount):
+        """Complete pending withdrawal"""
+        if self.pending_balance >= amount:
+            self.pending_balance -= amount
+            self.save(update_fields=['pending_balance', 'updated_at'])
+            return True
+        return False
+    
+    def release_pending(self, amount):
+        """Release pending amount back to balance (for failed withdrawals)"""
+        if self.pending_balance >= amount:
+            self.pending_balance -= amount
+            self.balance += amount
+            self.save(update_fields=['balance', 'pending_balance', 'updated_at'])
+            return True
+        return False
+
+
+class WalletTransaction(models.Model):
+    """Track all wallet transactions (credits and debits)"""
+    
+    TRANSACTION_TYPES = [
+        ('credit', 'Credit (Money In)'),
+        ('debit', 'Debit (Money Out)'),
+    ]
+    
+    TRANSACTION_STATUS = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+    
+    TRANSACTION_CATEGORIES = [
+        ('commission', 'Admin Commission'),
+        ('supplier_payout', 'Supplier Payout'),
+        ('vat_collection', 'VAT Collection'),
+        ('product_sale', 'Product Sale'),
+        ('withdrawal', 'Withdrawal'),
+        ('refund', 'Refund'),
+        ('adjustment', 'Adjustment'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, related_name='wallet_transactions')
+    order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, null=True, blank=True)
+    
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    category = models.CharField(max_length=30, choices=TRANSACTION_CATEGORIES, default='adjustment')
+    status = models.CharField(max_length=20, choices=TRANSACTION_STATUS, default='completed')
+    
+    description = models.CharField(max_length=255)
+    reference = models.CharField(max_length=100, unique=True)
+    
+    # Additional metadata
+    metadata = models.JSONField(default=dict, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['request_reference']),
-            models.Index(fields=['admin', 'status']),
+            models.Index(fields=['wallet', '-created_at']),
+            models.Index(fields=['reference']),
+            models.Index(fields=['category']),
         ]
     
+    def __str__(self):
+        return f"{self.reference} - {self.amount:,.0f} FRW ({self.get_transaction_type_display()})"
+    
     def save(self, *args, **kwargs):
-        if not self.request_reference:
+        if not self.reference:
             date_part = timezone.now().strftime('%Y%m%d')
             random_part = secrets.token_hex(4).upper()
-            self.request_reference = f"WDR-{date_part}-{random_part}"
+            self.reference = f"WTX-{date_part}-{random_part}"
         super().save(*args, **kwargs)
+
+
+class WithdrawalRequest(models.Model):
+    """User withdrawal requests from wallet (Updated for both admin and supplier)"""
+    
+    WITHDRAWAL_STATUS = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    PAYMENT_METHODS = [
+        ('mobile_money', 'Mobile Money'),
+        ('bank_transfer', 'Bank Transfer'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    withdrawal_number = models.CharField(max_length=50, unique=True, editable=False)
+    
+    # TEMPORARILY ALLOWING NULL TO COMPLETE MIGRATION - WILL FIX AFTER
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='withdrawals',
+        null=True,  # TEMPORARY - will remove after migration
+        blank=True  # TEMPORARY - will remove after migration
+    )
+    wallet = models.ForeignKey(
+        Wallet, 
+        on_delete=models.CASCADE, 
+        related_name='withdrawals',
+        null=True,  # TEMPORARY - will remove after migration
+        blank=True  # TEMPORARY - will remove after migration
+    )
+    
+    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('1000'))])
+    phone_number = models.CharField(max_length=20, blank=True)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='mobile_money')
+    
+    # Bank transfer fields
+    bank_name = models.CharField(max_length=100, blank=True)
+    account_number = models.CharField(max_length=100, blank=True)
+    account_name = models.CharField(max_length=255, blank=True)
+    
+    status = models.CharField(max_length=20, choices=WITHDRAWAL_STATUS, default='pending')
+    failure_reason = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+    
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='processed_withdrawals'
+    )
+    processed_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    transaction_reference = models.CharField(max_length=100, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['withdrawal_number']),
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['created_at']),
+        ]
     
     def __str__(self):
-        return f"Withdrawal {self.amount} - {self.status}"
+        user_email = self.user.email if self.user else "Unknown User"
+        return f"{self.withdrawal_number} - {user_email} - {self.amount:,.0f} FRW ({self.status})"
+    
+    def save(self, *args, **kwargs):
+        if not self.withdrawal_number:
+            date_part = timezone.now().strftime('%Y%m%d')
+            random_part = secrets.token_hex(4).upper()
+            self.withdrawal_number = f"WID-{date_part}-{random_part}"
+        super().save(*args, **kwargs)
     
     def approve(self, admin_user):
+        """Approve withdrawal request"""
         self.status = 'approved'
-        self.reviewed_by = admin_user
-        self.reviewed_at = timezone.now()
+        self.processed_by = admin_user
+        self.processed_at = timezone.now()
         self.save()
     
-    def reject(self, admin_user, reason):
-        self.status = 'rejected'
-        self.rejection_reason = reason
-        self.reviewed_by = admin_user
-        self.reviewed_at = timezone.now()
+    def mark_processing(self):
+        """Mark as processing"""
+        self.status = 'processing'
         self.save()
     
     def mark_completed(self, reference=''):
+        """Mark as completed"""
         self.status = 'completed'
         self.completed_at = timezone.now()
         if reference:
             self.transaction_reference = reference
         self.save()
+    
+    def mark_failed(self, reason):
+        """Mark as failed"""
+        self.status = 'failed'
+        self.failure_reason = reason
+        self.save()
+    
+    def reject(self, admin_user, reason):
+        """Reject withdrawal request"""
+        self.status = 'failed'
+        self.failure_reason = reason
+        self.processed_by = admin_user
+        self.processed_at = timezone.now()
+        self.save()
+        
+        
+        

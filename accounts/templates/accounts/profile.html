@@ -1,87 +1,185 @@
-{% extends 'base.html' %}
+{% extends 'dashboard/base_dashboard.html' %}
 {% load static %}
 
 {% block title %}My Profile - HerosTechnology{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <i class="fas fa-user-circle fa-4x" style="color: var(--secondary-color);"></i>
-                    <h4 class="mt-3">{{ user.full_name|default:user.email }}</h4>
-                    <p class="text-muted">
-                        <span class="badge bg-primary">{{ user.get_role_display }}</span>
-                    </p>
-                    <hr>
-                    <div class="text-start">
-                        <p><i class="fas fa-envelope me-2"></i> {{ user.email }}</p>
-                        <p><i class="fas fa-phone me-2"></i> {{ user.phone }}</p>
-                        <p><i class="fas fa-calendar me-2"></i> Joined: {{ user.date_joined|date:"F j, Y" }}</p>
-                        {% if user.business_name %}
-                        <p><i class="fas fa-store me-2"></i> {{ user.business_name }}</p>
+{% block dashboard_content %}
+<div class="row">
+    <!-- Profile Information Column -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-user-circle fa-5x" style="color: var(--secondary-color);"></i>
+                <h4 class="mt-3">{{ user.full_name|default:user.email }}</h4>
+                <p class="text-muted">
+                    <span class="badge bg-primary">{{ user.get_role_display }}</span>
+                    {% if user.role == 'supplier' and user.is_approved_supplier %}
+                    <span class="badge bg-success ms-1">Verified Supplier</span>
+                    {% endif %}
+                </p>
+                <hr>
+                <div class="text-start">
+                    <p><i class="fas fa-envelope me-2 text-primary"></i> <strong>Email:</strong><br>{{ user.email }}</p>
+                    <p><i class="fas fa-phone me-2 text-primary"></i> <strong>Phone:</strong><br>{{ user.phone|default:"Not provided" }}</p>
+                    <p><i class="fas fa-calendar me-2 text-primary"></i> <strong>Joined:</strong><br>{{ user.date_joined|date:"F j, Y" }}</p>
+                    {% if user.business_name %}
+                    <p><i class="fas fa-store me-2 text-primary"></i> <strong>Business Name:</strong><br>{{ user.business_name }}</p>
+                    {% endif %}
+                    {% if user.tax_id %}
+                    <p><i class="fas fa-id-card me-2 text-primary"></i> <strong>Tax ID:</strong><br>{{ user.tax_id }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Update Profile Column -->
+    <div class="col-md-8">
+        <!-- Update Profile Form Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-edit"></i> Update Profile</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Full Name</label>
+                        {{ form.full_name }}
+                        {% if form.full_name.errors %}
+                            <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
                         {% endif %}
+                        <div class="form-text">Your full name as it appears on your account</div>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Phone Number</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">Your contact phone number for order updates</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Recent Login History Card -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Recent Login History</h5>
+                <a href="{% url 'accounts:login_history' %}" class="btn btn-sm btn-outline-primary">View Full History</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Device</th>
+                                <th>Location</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for login in recent_logins %}
+                            <tr>
+                                <td>>
+                                    <strong>{{ login.login_time|date:"Y-m-d" }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ login.login_time|date:"H:i:s" }}</small>
+                                </a>
+                                <td>
+                                    <i class="fas fa-{% if login.device_type == 'smartphone' %}mobile-alt{% elif login.device_type == 'tablet' %}tablet-alt{% else %}laptop{% endif %} me-1"></i>
+                                    {{ login.get_device_type_display|default:"Unknown" }}
+                                 </a>
+                                <td>
+                                    {% if login.location_country %}
+                                        <i class="fas fa-map-marker-alt me-1 text-danger"></i>
+                                        {{ login.get_location_display }}
+                                    {% else %}
+                                        <span class="text-muted">Unknown</span>
+                                    {% endif %}
+                                 </a>
+                                <td>
+                                    <code class="small">{{ login.ip_address }}</code>
+                                 </a>
+                             </a>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <i class="fas fa-history fa-2x text-muted mb-2"></i>
+                                    <p class="mb-0">No login history found</p>
+                                    <small class="text-muted">Login history will appear here after you log in</small>
+                                </a>
+                             </a>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="mb-3">Update Profile</h4>
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label class="form-label">Full Name</label>
-                            {{ form.full_name }}
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Phone Number</label>
-                            {{ form.phone }}
-                        </div>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </form>
-                </div>
+        <!-- Account Security Tips -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Security Tips</h5>
             </div>
-            
-            <div class="card mt-4">
-                <div class="card-body">
-                    <h4 class="mb-3">Recent Login History</h4>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Date & Time</th>
-                                    <th>Device</th>
-                                    <th>Location</th>
-                                    <th>IP Address</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for login in recent_logins %}
-                                <tr>
-                                    <td>{{ login.login_time|date:"Y-m-d H:i" }}</td>
-                                    <td>
-                                        <i class="fas fa-{% if login.device_type == 'smartphone' %}mobile-alt{% elif login.device_type == 'tablet' %}tablet-alt{% else %}laptop{% endif %}"></i>
-                                        {{ login.get_device_type_display }}
-                                    </td>
-                                    <td>{{ login.get_location_display }}</td>
-                                    <td>{{ login.ip_address }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center">No login history found</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Keep your password secure</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Never share your login details</span>
+                        </div>
                     </div>
-                    <a href="{% url 'accounts:login_history' %}" class="btn btn-link">View Full History</a>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Review your login history regularly</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Contact support if you notice suspicious activity</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .table th {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        font-size: 0.85rem;
+    }
+    
+    .card-header {
+        background: white;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    @media (max-width: 768px) {
+        .table td {
+            font-size: 0.7rem;
+        }
+        .card-body {
+            padding: 1rem;
+        }
+    }
+</style>
 {% endblock %}

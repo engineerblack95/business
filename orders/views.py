@@ -15,7 +15,8 @@ from accounts.models import User
 from notifications.utils.notification_service import NotificationService
 from .models import (
     Cart, CartItem, Order, OrderItem, 
-    PaymentTransaction, CommissionEarning, WithdrawalRequest
+    PaymentTransaction, CommissionEarning, WithdrawalRequest,
+    Wallet, WalletTransaction  # Added wallet models
 )
 from .forms import (
     CheckoutForm, PaymentSimulationForm, WithdrawalRequestForm, OrderFilterForm
@@ -23,6 +24,7 @@ from .forms import (
 from .utils.payment_processor import PaymentProcessor
 from .utils.commission_calculator import CommissionCalculator
 from .utils.receipt_generator import ReceiptGenerator
+from .services.wallet_service import WalletService  # Added wallet service
 
 
 @login_required
@@ -195,8 +197,9 @@ def checkout_view(request):
 
 @login_required
 @role_required(['customer'])
+@transaction.atomic
 def payment_view(request, order_id):
-    """Payment page for order"""
+    """Payment page for order with automatic wallet splitting"""
     order = get_object_or_404(Order, id=order_id, customer=request.user)
     
     if order.payment_status != 'pending':
@@ -206,14 +209,53 @@ def payment_view(request, order_id):
     if request.method == 'POST':
         form = PaymentSimulationForm(request.POST)
         if form.is_valid():
-            # Process payment
+            # Process payment (simulated for now)
             success, transaction_obj, message = PaymentProcessor.process_simulated_payment(
                 order,
                 form.cleaned_data['mobile_money_number']
             )
             
             if success:
-                messages.success(request, message)
+                # ============================================================
+                # CRITICAL: Auto-split payment into wallets
+                # This distributes funds to: Admin Commission, Supplier Wallet, Tax Wallet
+                # ============================================================
+                try:
+                    wallet_result = WalletService.process_order_split(order)
+                    
+                    if wallet_result['success']:
+                        messages.success(request, f'{message} Funds have been automatically distributed.')
+                        
+                        # Send notification to admin about commission
+                        admin_user = User.objects.filter(role='admin').first()
+                        if admin_user:
+                            NotificationService.create_notification(
+                                user=admin_user,
+                                title="💰 New Commission Earned!",
+                                message=f"Commission earned from order #{order.order_number}. Total: {order.get_commission_total():,.0f} FRW",
+                                notification_type='commission',
+                                priority='medium',
+                                link='/dashboard/admin/wallet/'
+                            )
+                        
+                        # Send notification to suppliers about their earnings
+                        for order_item in order.items.filter(is_supplier_product=True):
+                            supplier = order_item.product.owner
+                            NotificationService.create_notification(
+                                user=supplier,
+                                title="💵 New Earnings Received!",
+                                message=f"Your product '{order_item.product.name}' was sold. {order_item.supplier_payout_amount:,.0f} FRW added to your wallet.",
+                                notification_type='earnings',
+                                priority='medium',
+                                link='/dashboard/supplier/wallet/'
+                            )
+                    else:
+                        messages.warning(request, f'{message} But wallet distribution encountered issues: {wallet_result.get("error", "")}')
+                        
+                except Exception as e:
+                    print(f"Wallet split error: {e}")
+                    messages.warning(request, f'{message} Please contact support if funds are not reflected.')
+                
                 return redirect('orders:order_confirmation', order_id=order.id)
             else:
                 messages.error(request, f'Payment failed: {message}')
@@ -429,45 +471,32 @@ def supplier_orders_view(request):
 @login_required
 @role_required(['admin'])
 def commission_dashboard_view(request):
-    """Admin commission dashboard"""
+    """Admin commission dashboard - Updated with wallet integration"""
     
-    # Get commission summary
-    commission_summary = CommissionCalculator.get_admin_commission_summary(request.user)
+    # Get commission summary from WalletService
+    commission_summary = WalletService.get_admin_commission_summary(request.user)
     
-    # Get recent commissions
-    recent_commissions = CommissionEarning.objects.filter(
-        admin=request.user
-    ).select_related('order_item__product', 'order_item__order')[:20]
+    # Get recent wallet transactions (commissions)
+    recent_transactions = WalletService.get_wallet_transactions(
+        request.user, 
+        wallet_type='admin', 
+        limit=20
+    )
     
     # Get withdrawal requests
     withdrawal_requests = WithdrawalRequest.objects.filter(
-        admin=request.user
+        user=request.user
     ).order_by('-created_at')
     
-    # Process withdrawal request if POST
-    if request.method == 'POST':
-        form = WithdrawalRequestForm(
-            request.POST, 
-            available_commission=commission_summary['available']
-        )
-        if form.is_valid():
-            withdrawal = form.save(commit=False)
-            withdrawal.admin = request.user
-            withdrawal.save()
-            messages.success(request, f'Withdrawal request of {withdrawal.amount:,.0f} FRW submitted.')
-            return redirect('orders:commission_dashboard')
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f'{field}: {error}')
-    else:
-        form = WithdrawalRequestForm(available_commission=commission_summary['available'])
+    # Get tax summary
+    tax_summary = WalletService.get_tax_summary()
     
     context = {
         'summary': commission_summary,
-        'recent_commissions': recent_commissions,
+        'recent_transactions': recent_transactions,
         'withdrawal_requests': withdrawal_requests,
-        'form': form,
+        'tax_summary': tax_summary,
+        'section': 'commissions',
     }
     return render(request, 'orders/commission_dashboard.html', context)
 
@@ -475,30 +504,42 @@ def commission_dashboard_view(request):
 @login_required
 @role_required(['admin'])
 def request_withdrawal_view(request):
-    """Admin request commission withdrawal"""
+    """Admin request commission withdrawal - Updated to use WalletService"""
     
     # Get available commission
-    available = CommissionCalculator.get_available_commission(request.user)
+    available = WalletService.get_available_balance(request.user, 'admin')
     
     if request.method == 'POST':
-        form = WithdrawalRequestForm(request.POST, available_commission=available)
-        if form.is_valid():
-            withdrawal = form.save(commit=False)
-            withdrawal.admin = request.user
-            withdrawal.save()
-            
-            messages.success(request, f'Withdrawal request of {withdrawal.amount:,.0f} FRW submitted successfully.')
-            return redirect('orders:commission_dashboard')
+        amount = Decimal(request.POST.get('amount', 0))
+        phone_number = request.POST.get('phone_number', '')
+        payment_method = request.POST.get('payment_method', 'mobile_money')
+        notes = request.POST.get('notes', '')
+        
+        # Validate amount
+        if amount < WalletService.MINIMUM_WITHDRAWAL:
+            messages.error(request, f'Minimum withdrawal amount is {WalletService.MINIMUM_WITHDRAWAL:,.0f} FRW')
+        elif amount > available:
+            messages.error(request, f'Amount exceeds available balance of {available:,.0f} FRW')
         else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f'{field}: {error}')
-    else:
-        form = WithdrawalRequestForm(available_commission=available)
+            # Create withdrawal request
+            result = WalletService.create_withdrawal_request(
+                user=request.user,
+                amount=amount,
+                phone_number=phone_number,
+                payment_method=payment_method,
+                notes=notes
+            )
+            
+            if result['success']:
+                messages.success(request, f'Withdrawal request of {amount:,.0f} FRW submitted successfully.')
+            else:
+                messages.error(request, result['error'])
+        
+        return redirect('orders:commission_dashboard')
     
     context = {
-        'form': form,
         'available_commission': available,
+        'minimum_withdrawal': WalletService.MINIMUM_WITHDRAWAL,
     }
     return render(request, 'orders/request_withdrawal.html', context)
 
@@ -525,3 +566,154 @@ def cancel_order_view(request, order_id):
         messages.error(request, 'Order cannot be cancelled at this stage.')
     
     return redirect('orders:admin_orders')
+
+
+# ============================================================
+# NEW: WALLET DASHBOARD VIEWS
+# ============================================================
+
+@login_required
+def supplier_wallet_view(request):
+    """Supplier view their wallet balance and transactions"""
+    
+    if request.user.role != 'supplier':
+        messages.error(request, 'Access denied. Supplier only.')
+        return redirect('dashboard:home')
+    
+    # Get wallet balance
+    wallet_info = WalletService.get_wallet_balance(request.user, 'supplier')
+    
+    # Get recent transactions
+    transactions = WalletService.get_wallet_transactions(
+        request.user, 
+        wallet_type='supplier', 
+        limit=30
+    )
+    
+    # Get withdrawal requests
+    withdrawals = WithdrawalRequest.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:20]
+    
+    # Get earnings summary
+    earnings_summary = WalletService.get_supplier_earnings_summary(request.user)
+    
+    context = {
+        'wallet': wallet_info,
+        'transactions': transactions,
+        'withdrawals': withdrawals,
+        'earnings_summary': earnings_summary,
+        'minimum_withdrawal': WalletService.MINIMUM_WITHDRAWAL,
+        'section': 'wallet',
+    }
+    return render(request, 'dashboard/supplier_wallet.html', context)
+
+
+@login_required
+@role_required(['admin'])
+def admin_wallet_view(request):
+    """Admin view their commission wallet"""
+    
+    # Get wallet balance
+    wallet_info = WalletService.get_wallet_balance(request.user, 'admin')
+    
+    # Get recent transactions
+    transactions = WalletService.get_wallet_transactions(
+        request.user, 
+        wallet_type='admin', 
+        limit=30
+    )
+    
+    # Get withdrawal requests
+    withdrawals = WithdrawalRequest.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:20]
+    
+    # Get commission summary
+    commission_summary = WalletService.get_admin_commission_summary(request.user)
+    
+    # Get tax summary
+    tax_summary = WalletService.get_tax_summary()
+    
+    context = {
+        'wallet': wallet_info,
+        'transactions': transactions,
+        'withdrawals': withdrawals,
+        'commission_summary': commission_summary,
+        'tax_summary': tax_summary,
+        'minimum_withdrawal': WalletService.MINIMUM_WITHDRAWAL,
+        'section': 'wallet',
+    }
+    return render(request, 'dashboard/admin_wallet.html', context)
+
+
+@login_required
+def request_wallet_withdrawal_view(request):
+    """User request withdrawal from their wallet"""
+    
+    # Determine wallet type based on role
+    if request.user.role == 'supplier':
+        wallet_type = 'supplier'
+        redirect_url = 'dashboard:supplier_wallet'
+    elif request.user.role == 'admin':
+        wallet_type = 'admin'
+        redirect_url = 'dashboard:admin_wallet'
+    else:
+        messages.error(request, 'Only suppliers and admins can request withdrawals.')
+        return redirect('dashboard:home')
+    
+    if request.method == 'POST':
+        amount = Decimal(request.POST.get('amount', 0))
+        phone_number = request.POST.get('phone_number', '')
+        payment_method = request.POST.get('payment_method', 'mobile_money')
+        notes = request.POST.get('notes', '')
+        
+        result = WalletService.create_withdrawal_request(
+            user=request.user,
+            amount=amount,
+            phone_number=phone_number,
+            payment_method=payment_method,
+            notes=notes
+        )
+        
+        if result['success']:
+            messages.success(request, f'Withdrawal request of {amount:,.0f} FRW submitted successfully.')
+        else:
+            messages.error(request, result['error'])
+    
+    return redirect(redirect_url)
+
+
+@login_required
+@role_required(['admin'])
+def process_withdrawal_request_view(request, withdrawal_id):
+    """Admin process a withdrawal request (approve/reject)"""
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'approve':
+            result = WalletService.process_withdrawal(
+                withdrawal_id=withdrawal_id,
+                admin_user=request.user,
+                approve=True
+            )
+        else:
+            reason = request.POST.get('rejection_reason', 'Not specified')
+            result = WalletService.process_withdrawal(
+                withdrawal_id=withdrawal_id,
+                admin_user=request.user,
+                approve=False,
+                rejection_reason=reason
+            )
+        
+        if result['success']:
+            messages.success(request, result['message'])
+        else:
+            messages.error(request, result.get('error', 'Failed to process withdrawal'))
+    
+    # Redirect based on user role
+    if request.user.role == 'admin':
+        return redirect('dashboard:admin_wallet')
+    else:
+        return redirect('dashboard:supplier_wallet')

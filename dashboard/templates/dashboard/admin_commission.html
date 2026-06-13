@@ -1,0 +1,383 @@
+{% extends 'dashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Commission Reports - HerosTechnology{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2C3E50;
+        --secondary-color: #E67E22;
+        --success-color: #27AE60;
+        --danger-color: #E74C3C;
+        --warning-color: #F39C12;
+        --info-color: #3498DB;
+        --dark-color: #1A252F;
+    }
+    
+    /* Dashboard Card */
+    .dashboard-card {
+        background: white;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .dashboard-card .card-header {
+        background: white;
+        border-bottom: 1px solid #e9ecef;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+    }
+    
+    /* Stats Card */
+    .stats-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--secondary-color);
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .stats-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0;
+        line-height: 1.2;
+    }
+    
+    .stats-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stats-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    /* Chart Container */
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    
+    /* Table */
+    .commission-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.75rem 1rem;
+    }
+    
+    .commission-table td {
+        padding: 0.75rem 1rem;
+        vertical-align: middle;
+        font-size: 0.85rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 992px) {
+        .stats-value {
+            font-size: 1.25rem;
+        }
+        .stats-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+        }
+        .chart-container {
+            height: 250px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .stats-card {
+            padding: 1rem;
+        }
+        .stats-value {
+            font-size: 1rem;
+        }
+        .commission-table th, .commission-table td {
+            padding: 0.5rem;
+            font-size: 0.7rem;
+        }
+        .chart-container {
+            height: 200px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="commission-reports-wrapper">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1 fs-2 fs-md-1">
+                <i class="fas fa-chart-line" style="color: var(--secondary-color);"></i> 
+                Commission Reports
+            </h2>
+            <p class="text-muted mb-0 small">
+                <i class="fas fa-chart-simple me-1"></i>
+                Track your commission earnings and analytics
+            </p>
+        </div>
+        <a href="{% url 'dashboard:admin_wallet' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Back to Wallet
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stats-label">Total Commission</div>
+                        <div class="stats-value">{{ commission_summary.total_earned|floatformat:0 }} FRW</div>
+                        <small class="text-muted mt-1 d-inline-block">Lifetime earnings</small>
+                    </div>
+                    <div class="stats-icon" style="background: rgba(230, 126, 34, 0.1); color: var(--secondary-color);">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stats-label">Available Balance</div>
+                        <div class="stats-value" style="color: var(--success-color);">{{ commission_summary.available|floatformat:0 }} FRW</div>
+                        <small class="text-muted mt-1 d-inline-block">Ready to withdraw</small>
+                    </div>
+                    <div class="stats-icon" style="background: rgba(39, 174, 96, 0.1); color: var(--success-color);">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stats-label">Withdrawn</div>
+                        <div class="stats-value">{{ commission_summary.withdrawn|floatformat:0 }} FRW</div>
+                        <small class="text-muted mt-1 d-inline-block">Paid out</small>
+                    </div>
+                    <div class="stats-icon" style="background: rgba(52, 152, 219, 0.1); color: var(--info-color);">
+                        <i class="fas fa-history"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stats-label">Tax Collected</div>
+                        <div class="stats-value">{{ tax_summary.total_vat_collected|floatformat:0 }} FRW</div>
+                        <small class="text-muted mt-1 d-inline-block">VAT collected</small>
+                    </div>
+                    <div class="stats-icon" style="background: rgba(243, 156, 18, 0.1); color: var(--warning-color);">
+                        <i class="fas fa-building"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Commission Chart -->
+    <div class="dashboard-card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-bar" style="color: var(--secondary-color);"></i> 
+                Monthly Commission Trend
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="monthlyCommissionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Commission Transactions -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list" style="color: var(--secondary-color);"></i> 
+                Recent Commission Transactions
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table commission-table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Order #</th>
+                            <th>Product</th>
+                            <th>Supplier</th>
+                            <th>Commission</th>
+                        </thead>
+                    </thead>
+                    <tbody>
+                        {% for tx in commission_transactions %}
+                        <tr>
+                            <td>{{ tx.created_at|date:"Y-m-d H:i" }}</a>
+                            <td>
+                                {% if tx.order and tx.order.order_number %}
+                                <a href="{% url 'orders:order_detail' tx.order.id %}" class="text-decoration-none">
+                                    {{ tx.order.order_number|truncatechars:12 }}
+                                </a>
+                                {% else %}—{% endif %}
+                            </a>
+                            <td>{{ tx.description|truncatechars:35 }}</a>
+                            <td>
+                                {% if tx.metadata and tx.metadata.supplier %}
+                                    {{ tx.metadata.supplier|truncatechars:20 }}
+                                {% else %}—{% endif %}
+                            </a>
+                            <td class="fw-bold text-success">{{ tx.amount|floatformat:0 }} FRW</a>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                                <p class="mb-0">No commission transactions yet</p>
+                                <small class="text-muted">Commissions will appear when supplier products are sold</small>
+                            </a>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Suppliers by Commission -->
+    <div class="dashboard-card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-trophy" style="color: var(--warning-color);"></i> 
+                Top Suppliers by Commission
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table commission-table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Supplier</th>
+                            <th>Total Commission</th>
+                            <th>Products</th>
+                        </thead>
+                    </thead>
+                    <tbody>
+                        {% for supplier in top_suppliers %}
+                        <tr>
+                            <td>
+                                <div class="small">
+                                    {% if supplier.supplier__email %}
+                                        {{ supplier.supplier__email|truncatechars:25 }}
+                                    {% else %}
+                                        {{ supplier.order_item__product__owner__email|truncatechars:25 }}
+                                    {% endif %}
+                                </div>
+                            </a>
+                            <td class="fw-bold text-success">{{ supplier.total_commission|floatformat:0 }} FRW</a>
+                            <td>{{ supplier.product_count|default:supplier.product_count }} products</a>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4">
+                                <p class="mb-0 text-muted">No supplier data available</p>
+                            </a>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly Commission Chart
+        const ctx = document.getElementById('monthlyCommissionChart')?.getContext('2d');
+        
+        if (ctx) {
+            const months = [{% for item in monthly_commission %}'{{ item.month }}',{% endfor %}];
+            const amounts = [{% for item in monthly_commission %}{{ item.total }},{% endfor %}];
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: months.length ? months : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Commission Earned (FRW)',
+                        data: amounts.length ? amounts : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(230, 126, 34, 0.7)',
+                        borderColor: '#E67E22',
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Commission: ' + new Intl.NumberFormat().format(context.raw) + ' FRW';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M FRW';
+                                    if (value >= 1000) return (value / 1000).toFixed(0) + 'K FRW';
+                                    return value + ' FRW';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

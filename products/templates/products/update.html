@@ -1,178 +1,231 @@
-{% extends 'base.html' %}
+{% extends 'dashboard/base_dashboard.html' %}
 {% load static %}
 
 {% block title %}Edit Product - HerosTechnology{% endblock %}
 
-{% block extra_css %}
+{% block dashboard_content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:supplier' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'products:supplier_products' %}">My Products</a></li>
+        <li class="breadcrumb-item active">Edit Product</li>
+    </ol>
+</nav>
+
+<div class="card">
+    <div class="card-header bg-warning text-dark">
+        <h4 class="mb-0"><i class="fas fa-edit"></i> Edit Product: {{ product.name }}</h4>
+        <p class="mb-0 text-muted small mt-1">Update your product information</p>
+    </div>
+    <div class="card-body">
+        <!-- Warning Alert for Approved Products -->
+        {% if product.status == 'approved' %}
+        <div class="alert alert-warning mb-4">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Note:</strong> Editing an approved product will require re-approval from admin.
+            The product will be hidden from customers until approved again.
+        </div>
+        {% endif %}
+        
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <h5 class="mb-3"><i class="fas fa-info-circle text-primary"></i> Basic Information</h5>
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label fw-bold">Product Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Brand</label>
+                    {{ form.brand }}
+                    {% if form.brand.errors %}
+                        <div class="text-danger small mt-1">{{ form.brand.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                        <div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Subcategory (Optional)</label>
+                    {{ form.subcategory }}
+                    {% if form.subcategory.errors %}
+                        <div class="text-danger small mt-1">{{ form.subcategory.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Short Description <span class="text-danger">*</span></label>
+                {{ form.short_description }}
+                {% if form.short_description.errors %}
+                    <div class="text-danger small mt-1">{{ form.short_description.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Full Description <span class="text-danger">*</span></label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Pricing & Stock -->
+            <h5 class="mb-3 mt-4"><i class="fas fa-tag text-primary"></i> Pricing & Stock</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Base Price (excl. VAT) <span class="text-danger">*</span></label>
+                    {{ form.base_price }}
+                    {% if form.base_price.errors %}
+                        <div class="text-danger small mt-1">{{ form.base_price.errors.0 }}</div>
+                    {% endif %}
+                    <div class="form-text">Current: {{ product.base_price|floatformat:0 }} FRW</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Stock Quantity <span class="text-danger">*</span></label>
+                    {{ form.exact_quantity }}
+                    {% if form.exact_quantity.errors %}
+                        <div class="text-danger small mt-1">{{ form.exact_quantity.errors.0 }}</div>
+                    {% endif %}
+                    <div class="form-text">Current: {{ product.exact_quantity }} units</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Low Stock Threshold</label>
+                    {{ form.low_stock_threshold }}
+                    {% if form.low_stock_threshold.errors %}
+                        <div class="text-danger small mt-1">{{ form.low_stock_threshold.errors.0 }}</div>
+                    {% endif %}
+                    <div class="form-text">Current: {{ product.low_stock_threshold }}</div>
+                </div>
+            </div>
+            
+            <!-- Price Preview -->
+            <div class="alert alert-secondary" id="pricePreview" style="display: none;">
+                <small>
+                    <i class="fas fa-calculator"></i> 
+                    <strong>Price Preview:</strong> 
+                    Base: <span id="previewBase">0</span> FRW | 
+                    VAT (18%): <span id="previewVat">0</span> FRW | 
+                    <strong>Final Price: <span id="previewFinal">0</span> FRW</strong>
+                </small>
+            </div>
+            
+            <!-- Product Images -->
+            <h5 class="mb-3 mt-4"><i class="fas fa-image text-primary"></i> Product Images</h5>
+            
+            <!-- Current Image -->
+            {% if product.main_image %}
+            <div class="mb-3">
+                <label class="form-label fw-bold">Current Main Image</label>
+                <div>
+                    <img src="{{ product.main_image.url }}" alt="{{ product.name }}" 
+                         style="max-width: 150px; border-radius: 10px; border: 2px solid #dee2e6; padding: 5px;">
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- New Image -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Change Main Image (Optional)</label>
+                {{ form.main_image }}
+                {% if form.main_image.errors %}
+                    <div class="text-danger small mt-1">{{ form.main_image.errors.0 }}</div>
+                {% endif %}
+                <div class="form-text">Upload a new image to replace the current one</div>
+                <div id="mainImagePreview" class="mt-2"></div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between gap-2">
+                <a href="{% url 'products:supplier_products' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-save"></i> Update Product
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <style>
-    .form-label {
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-    .required-field::after {
-        content: " *";
-        color: red;
+    .form-text {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 4px;
     }
     .form-control:focus, .form-select:focus {
         border-color: #E67E22;
         box-shadow: 0 0 0 0.2rem rgba(230,126,34,0.25);
     }
-    .image-preview {
-        max-width: 200px;
-        max-height: 200px;
-        margin-top: 10px;
-        border-radius: 10px;
-        border: 2px solid #dee2e6;
-        padding: 5px;
-    }
-    .current-image {
-        max-width: 150px;
-        border-radius: 10px;
-        margin-bottom: 10px;
-    }
 </style>
-{% endblock %}
-
-{% block content %}
-<div class="container mt-4 mb-5">
-    <div class="row">
-        <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'dashboard:supplier' %}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'products:supplier_products' %}">My Products</a></li>
-                    <li class="breadcrumb-item active">Edit Product</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
-    
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-header bg-warning text-dark rounded-top-4">
-                    <h3 class="mb-0"><i class="fas fa-edit"></i> Edit Product: {{ product.name }}</h3>
-                    <p class="mb-0">Update your product information</p>
-                </div>
-                <div class="card-body p-5">
-                    {% if product.status == 'approved' %}
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Note:</strong> Editing an approved product will require re-approval from admin.
-                        The product will be hidden from customers until approved again.
-                    </div>
-                    {% endif %}
-                    
-                    <form method="post" enctype="multipart/form-data" novalidate>
-                        {% csrf_token %}
-                        
-                        <!-- Basic Information -->
-                        <h4 class="mb-3"><i class="fas fa-info-circle"></i> Basic Information</h4>
-                        <div class="row">
-                            <div class="col-md-8 mb-3">
-                                <label class="form-label required-field">Product Name</label>
-                                {{ form.name }}
-                                {% if form.name.errors %}
-                                    <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Brand</label>
-                                {{ form.brand }}
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label required-field">Category</label>
-                                {{ form.category }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Subcategory</label>
-                                {{ form.subcategory }}
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label required-field">Short Description</label>
-                            {{ form.short_description }}
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label required-field">Full Description</label>
-                            {{ form.description }}
-                        </div>
-                        
-                        <!-- Pricing & Stock -->
-                        <h4 class="mb-3 mt-4"><i class="fas fa-tag"></i> Pricing & Stock</h4>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label required-field">Base Price (excl. VAT)</label>
-                                {{ form.base_price }}
-                                <div class="help-text">Current: {{ product.base_price|floatformat:0 }} FRW</div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label required-field">Stock Quantity</label>
-                                {{ form.exact_quantity }}
-                                <div class="help-text">Current: {{ product.exact_quantity }} units</div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Low Stock Threshold</label>
-                                {{ form.low_stock_threshold }}
-                            </div>
-                        </div>
-                        
-                        <!-- Current Image -->
-                        {% if product.main_image %}
-                        <div class="mb-3">
-                            <label class="form-label">Current Main Image</label>
-                            <div>
-                                <img src="{{ product.main_image.url }}" class="current-image" alt="{{ product.name }}">
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        <!-- New Image -->
-                        <div class="mb-3">
-                            <label class="form-label">Change Main Image (Optional)</label>
-                            {{ form.main_image }}
-                            <div id="mainImagePreview"></div>
-                        </div>
-                        
-                        <hr class="my-4">
-                        
-                        <div class="d-flex justify-content-between gap-2">
-                            <a href="{% url 'products:supplier_products' %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left"></i> Cancel
-                            </a>
-                            <button type="submit" class="btn btn-warning">
-                                <i class="fas fa-save"></i> Update Product
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
+    // Main image preview
     const mainImageInput = document.querySelector('#id_main_image');
-    const mainImagePreview = document.querySelector('#mainImagePreview');
+    const mainImagePreview = document.getElementById('mainImagePreview');
     
-    mainImageInput.addEventListener('change', function() {
-        mainImagePreview.innerHTML = '';
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.classList.add('image-preview');
-                mainImagePreview.appendChild(img);
+    if (mainImageInput) {
+        mainImageInput.addEventListener('change', function() {
+            mainImagePreview.innerHTML = '';
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.maxWidth = '150px';
+                    img.style.maxHeight = '150px';
+                    img.style.borderRadius = '8px';
+                    img.style.border = '2px solid #dee2e6';
+                    img.style.padding = '5px';
+                    mainImagePreview.appendChild(img);
+                }
+                reader.readAsDataURL(this.files[0]);
             }
-            reader.readAsDataURL(this.files[0]);
+        });
+    }
+    
+    // Price calculation preview
+    const basePriceInput = document.querySelector('#id_base_price');
+    const pricePreview = document.getElementById('pricePreview');
+    const previewBase = document.getElementById('previewBase');
+    const previewVat = document.getElementById('previewVat');
+    const previewFinal = document.getElementById('previewFinal');
+    const vatRate = 0.18;
+    
+    function updatePricePreview() {
+        const basePrice = parseFloat(basePriceInput?.value) || 0;
+        const vatAmount = basePrice * vatRate;
+        const finalPrice = basePrice + vatAmount;
+        
+        if (previewBase) previewBase.textContent = basePrice.toLocaleString();
+        if (previewVat) previewVat.textContent = vatAmount.toLocaleString();
+        if (previewFinal) previewFinal.textContent = finalPrice.toLocaleString();
+        
+        if (pricePreview && basePrice > 0) {
+            pricePreview.style.display = 'block';
+        } else if (pricePreview) {
+            pricePreview.style.display = 'none';
         }
-    });
+    }
+    
+    if (basePriceInput) {
+        basePriceInput.addEventListener('input', updatePricePreview);
+        updatePricePreview();
+    }
 </script>
 {% endblock %}

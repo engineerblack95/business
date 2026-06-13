@@ -1,20 +1,141 @@
-{% extends 'base.html' %}
+{% extends 'dashboard/base_dashboard.html' %}
 {% load static %}
 
 {% block title %}My Orders - HerosTechnology{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <h2><i class="fas fa-shopping-cart"></i> My Orders</h2>
-    
-    <div class="card mt-3">
-        <div class="card-body">
+{% block dashboard_content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1 fs-2 fs-md-1">
+                <i class="fas fa-shopping-cart" style="color: var(--secondary-color);"></i> 
+                My Orders
+            </h2>
+            <p class="text-muted mb-0 small">
+                <i class="fas fa-history me-1"></i>
+                View and track all your orders
+            </p>
+        </div>
+        <a href="{% url 'products:list' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus"></i> Continue Shopping
+        </a>
+    </div>
+
+    <!-- Orders Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stats-label">Total Orders</div>
+                        <div class="stats-value">{{ orders.paginator.count }}</div>
+                        <small class="text-muted mt-1 d-inline-block">
+                            <i class="fas fa-box"></i> Lifetime purchases
+                        </small>
+                    </div>
+                    <div class="stats-icon" style="background: rgba(52, 152, 219, 0.1); color: var(--info-color);">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stats-label">Total Spent</div>
+                        <div class="stats-value">
+                            {% with total=orders.object_list|length %}
+                                {% if total > 0 %}
+                                    0 FRW
+                                {% else %}
+                                    0 FRW
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        <small class="text-muted mt-1 d-inline-block">
+                            <i class="fas fa-chart-line"></i> All time
+                        </small>
+                    </div>
+                    <div class="stats-icon" style="background: rgba(39, 174, 96, 0.1); color: var(--success-color);">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stats-label">Pending Orders</div>
+                        <div class="stats-value">
+                            {% with pending=orders.object_list|length %}
+                                {{ pending }}
+                            {% endwith %}
+                        </div>
+                        <small class="text-warning mt-1 d-inline-block">
+                            <i class="fas fa-clock"></i> Awaiting delivery
+                        </small>
+                    </div>
+                    <div class="stats-icon" style="background: rgba(243, 156, 18, 0.1); color: var(--warning-color);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stats-label">Delivered Orders</div>
+                        <div class="stats-value">
+                            {% with delivered=orders.object_list|length %}
+                                {{ delivered }}
+                            {% endwith %}
+                        </div>
+                        <small class="text-success mt-1 d-inline-block">
+                            <i class="fas fa-check-circle"></i> Completed
+                        </small>
+                    </div>
+                    <div class="stats-icon" style="background: rgba(39, 174, 96, 0.1); color: var(--success-color);">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Table Card -->
+    <div class="dashboard-card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fas fa-list" style="color: var(--secondary-color);"></i> 
+                Order History
+            </h5>
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" id="statusFilter" style="width: 150px;">
+                    <option value="">All Orders</option>
+                    <option value="pending">Pending</option>
+                    <option value="processing">Processing</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+                <input type="text" class="form-control form-control-sm" id="searchOrder" placeholder="Search order #" style="width: 180px;">
+            </div>
+        </div>
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+                <table class="table table-hover mb-0" id="ordersTable">
+                    <thead class="table-light">
                         <tr>
                             <th>Order #</th>
                             <th>Date</th>
+                            <th>Items</th>
                             <th>Total</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -23,51 +144,98 @@
                     <tbody>
                         {% for order in orders %}
                         <tr>
-                            <td><strong>{{ order.order_number }}</strong></td>
-                            <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
-                            <td><strong>{{ order.grand_total|floatformat:0 }} FRW</strong></td>
                             <td>
+                                <strong class="small">{{ order.order_number|truncatechars:15 }}</strong>
+                            </a>
+                            <td class="small">{{ order.created_at|date:"M d, Y" }}<br>
+                                <small class="text-muted">{{ order.created_at|date:"H:i" }}</small>
+                            </a>
+                            <td class="small">{{ order.items.count }} item(s)</a>
+                            <td class="fw-bold">{{ order.grand_total|floatformat:0 }} FRW</a>
+                            <td>
+                                <span class="badge-status badge-{{ order.order_status }}">
+                                    <i class="fas 
+                                        {% if order.order_status == 'delivered' %}fa-check-circle
+                                        {% elif order.order_status == 'processing' %}fa-cog
+                                        {% elif order.order_status == 'shipped' %}fa-truck
+                                        {% elif order.order_status == 'pending' %}fa-clock
+                                        {% elif order.order_status == 'cancelled' %}fa-times-circle
+                                        {% else %}fa-box{% endif %} me-1"></i>
+                                    {{ order.get_order_status_display }}
+                                </span>
+                            </a>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-outline-info" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'orders:download_receipt' order.id %}" class="btn btn-outline-secondary" title="Download Receipt">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    {% if order.order_status == 'pending' %}
+                                    <button type="button" class="btn btn-outline-danger" title="Cancel Order" 
+                                            data-bs-toggle="modal" data-bs-target="#cancelModal{{ order.id }}">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Cancel Order Modal -->
                                 {% if order.order_status == 'pending' %}
-                                <span class="badge bg-warning">Pending</span>
-                                {% elif order.order_status == 'processing' %}
-                                <span class="badge bg-info">Processing</span>
-                                {% elif order.order_status == 'shipped' %}
-                                <span class="badge bg-primary">Shipped</span>
-                                {% elif order.order_status == 'delivered' %}
-                                <span class="badge bg-success">Delivered</span>
-                                {% elif order.order_status == 'cancelled' %}
-                                <span class="badge bg-danger">Cancelled</span>
+                                <div class="modal fade" id="cancelModal{{ order.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Cancel Order</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Are you sure you want to cancel order <strong>{{ order.order_number }}</strong>?</p>
+                                                <div class="alert alert-warning small">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                    This action cannot be undone. The amount will be refunded to your wallet.
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                <a href="{% url 'orders:cancel_order' order.id %}" class="btn btn-danger">Cancel Order</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-info">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                                <a href="{% url 'orders:download_receipt' order.id %}" class="btn btn-sm btn-secondary">
-                                    <i class="fas fa-download"></i>
-                                </a>
-                            </td>
-                        </tr>
+                             </a>
+                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center py-5">
-                                <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
-                                <p class="mb-0">You haven't placed any orders yet.</p>
-                                <a href="{% url 'products:list' %}" class="btn btn-primary mt-3">Start Shopping</a>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="mb-0 text-muted">You haven't placed any orders yet.</p>
+                                <a href="{% url 'products:list' %}" class="btn btn-primary mt-3">
+                                    <i class="fas fa-shopping-cart"></i> Start Shopping
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            
-            <!-- Pagination -->
-            {% if orders.has_other_pages %}
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
+        </div>
+        
+        <!-- Pagination -->
+        {% if orders.has_other_pages %}
+        <div class="card-footer bg-white">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
                     {% if orders.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ orders.previous_page_number }}">Previous</a>
+                        <a class="page-link" href="?page={{ orders.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
                     </li>
                     {% endif %}
                     
@@ -81,13 +249,148 @@
                     
                     {% if orders.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ orders.next_page_number }}">Next</a>
+                        <a class="page-link" href="?page={{ orders.next_page_number }}">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
                     </li>
                     {% endif %}
                 </ul>
             </nav>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
+
+<style>
+    /* Badge Styles */
+    .badge-status {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    
+    .badge-delivered { background: #d4edda; color: #155724; }
+    .badge-processing { background: #d1ecf1; color: #0c5460; }
+    .badge-shipped { background: #cce5ff; color: #004085; }
+    .badge-pending { background: #fff3cd; color: #856404; }
+    .badge-cancelled { background: #f8d7da; color: #721c24; }
+    
+    /* Dashboard Card */
+    .dashboard-card {
+        background: white;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+    
+    .dashboard-card .card-header {
+        background: white;
+        border-bottom: 1px solid #e9ecef;
+        padding: 1rem 1.25rem;
+    }
+    
+    /* Stats Card */
+    .stats-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--secondary-color);
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .stats-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0;
+        line-height: 1.2;
+    }
+    
+    .stats-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stats-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    /* Table Styles */
+    .table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .stats-value {
+            font-size: 1.1rem;
+        }
+        .table th, .table td {
+            font-size: 0.7rem;
+        }
+        .btn-group-sm .btn {
+            padding: 0.2rem 0.4rem;
+        }
+    }
+</style>
+
+<script>
+    // Filter by status
+    document.getElementById('statusFilter')?.addEventListener('change', function() {
+        const status = this.value;
+        const rows = document.querySelectorAll('#ordersTable tbody tr');
+        rows.forEach(row => {
+            if (status === '') {
+                row.style.display = '';
+            } else {
+                const statusCell = row.querySelector('td:nth-child(5)');
+                if (statusCell) {
+                    const statusText = statusCell.innerText.toLowerCase();
+                    row.style.display = statusText.includes(status) ? '' : 'none';
+                }
+            }
+        });
+    });
+    
+    // Search by order number
+    document.getElementById('searchOrder')?.addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#ordersTable tbody tr');
+        rows.forEach(row => {
+            const orderCell = row.querySelector('td:first-child');
+            if (orderCell) {
+                const orderText = orderCell.innerText.toLowerCase();
+                row.style.display = orderText.includes(searchTerm) ? '' : 'none';
+            }
+        });
+    });
+</script>
 {% endblock %}

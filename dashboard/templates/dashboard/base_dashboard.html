@@ -3,306 +3,445 @@
 
 {% block extra_css %}
 <style>
-    .dashboard-sidebar {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+    :root {
+        --primary-color: #2C3E50;
+        --secondary-color: #E67E22;
+        --dark-color: #1A252F;
+    }
+    
+    /* IMPORTANT: Dashboard Layout - Fixes the overlapping issue */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        overflow-x: hidden;
+        background: #f8f9fa;
+    }
+    
+    /* Dashboard Layout - Flexbox solution */
+    .dashboard-container {
+        display: flex;
         min-height: calc(100vh - 70px);
-        border-radius: 0;
+        width: 100%;
+        position: relative;
+    }
+    
+    /* Sidebar Styles - Fixed width on left */
+    .dashboard-sidebar {
+        width: 280px;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+        position: fixed;
+        left: 0;
+        top: 70px;
+        bottom: 0;
+        overflow-y: auto;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Main Content - Pushed to the right of sidebar */
+    .dashboard-main {
+        flex: 1;
+        margin-left: 280px;
+        padding: 20px;
+        min-height: calc(100vh - 70px);
+        background: #f8f9fa;
+        width: calc(100% - 280px);
+        transition: all 0.3s ease;
+    }
+    
+    /* Mobile Toggle Button */
+    .sidebar-toggle {
+        display: none;
+        position: fixed;
+        top: 80px;
+        left: 10px;
+        z-index: 1001;
+        background: var(--secondary-color);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .sidebar-toggle:hover {
+        background: #D35400;
+        transform: scale(1.05);
+    }
+    
+    /* Sidebar Content Styles */
+    .dashboard-sidebar .user-info {
+        text-align: center;
+        padding: 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .dashboard-sidebar .user-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+    }
+    
+    .dashboard-sidebar .user-avatar i {
+        font-size: 40px;
+        color: var(--primary-color);
+    }
+    
+    .dashboard-sidebar .user-name {
+        color: white;
+        font-weight: 600;
+        margin-bottom: 5px;
+        word-break: break-word;
+    }
+    
+    .dashboard-sidebar .user-role {
+        font-size: 12px;
+        color: rgba(255,255,255,0.7);
+    }
+    
+    .dashboard-sidebar .nav {
+        padding: 20px 0;
+    }
+    
+    .dashboard-sidebar .nav-item {
+        margin-bottom: 5px;
     }
     
     .dashboard-sidebar .nav-link {
         color: rgba(255,255,255,0.8);
         padding: 12px 20px;
-        margin: 5px 0;
+        margin: 0 10px;
         border-radius: 10px;
         transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
     
-    .dashboard-sidebar .nav-link:hover,
-    .dashboard-sidebar .nav-link.active {
+    .dashboard-sidebar .nav-link:hover {
         background: rgba(255,255,255,0.1);
         color: var(--secondary-color);
+        transform: translateX(5px);
+    }
+    
+    .dashboard-sidebar .nav-link.active {
+        background: rgba(230,126,34,0.2);
+        color: var(--secondary-color);
+        border-left: 3px solid var(--secondary-color);
     }
     
     .dashboard-sidebar .nav-link i {
-        width: 25px;
-        margin-right: 10px;
+        width: 22px;
+        font-size: 1.1rem;
     }
     
-    .stats-card {
-        background: white;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        transition: transform 0.3s ease;
-    }
-    
-    .stats-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .stats-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-    }
-    
-    .notification-badge {
-        position: relative;
-    }
-    
-    .notification-badge .badge {
-        position: absolute;
-        top: -8px;
-        right: -8px;
+    .dashboard-sidebar .nav-link .badge {
+        margin-left: auto;
+        background: var(--secondary-color);
+        color: white;
         font-size: 10px;
-        padding: 3px 6px;
+        padding: 2px 6px;
+        border-radius: 10px;
     }
     
-    /* Role badge styling */
+    .dashboard-sidebar .nav-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.1);
+        margin: 15px 20px;
+    }
+    
+    /* Role Badge */
     .role-badge {
         display: inline-block;
-        padding: 4px 8px;
-        border-radius: 12px;
+        padding: 4px 12px;
+        border-radius: 20px;
         font-size: 10px;
         font-weight: 600;
-        margin-top: 5px;
+        margin-top: 8px;
     }
     .role-badge.admin { background: #dc3545; color: white; }
     .role-badge.supplier { background: #28a745; color: white; }
     .role-badge.customer { background: #17a2b8; color: white; }
     .role-badge.team_member { background: #fd7e14; color: white; }
+    
+    /* Stats Card */
+    .stats-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+        border-left: 4px solid var(--secondary-color);
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .sidebar-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .dashboard-sidebar {
+            width: 260px;
+            left: -260px;
+            top: 60px;
+        }
+        
+        .dashboard-sidebar.show {
+            left: 0;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.2);
+        }
+        
+        .dashboard-main {
+            margin-left: 0;
+            padding: 15px;
+            width: 100%;
+        }
+        
+        .stats-card {
+            padding: 1rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .dashboard-main {
+            padding: 10px;
+        }
+        
+        .stats-card {
+            margin-bottom: 0.75rem;
+        }
+        
+        .dashboard-sidebar .nav-link {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+        }
+    }
+    
+    /* Custom Scrollbar for Sidebar */
+    .dashboard-sidebar::-webkit-scrollbar {
+        width: 5px;
+    }
+    
+    .dashboard-sidebar::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.1);
+    }
+    
+    .dashboard-sidebar::-webkit-scrollbar-thumb {
+        background: var(--secondary-color);
+        border-radius: 5px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0">
-    <div class="row g-0">
-        <!-- Sidebar -->
-        <div class="col-md-3 col-lg-2">
-            <div class="dashboard-sidebar p-3">
-                <div class="text-center mb-4">
-                    <div class="bg-white rounded-circle d-inline-flex p-2 mb-2">
-                        <i class="fas fa-user-circle fa-3x" style="color: var(--primary-color);"></i>
-                    </div>
-                    <h6 class="text-white mb-0">{{ user.full_name|default:user.email|truncatechars:20 }}</h6>
-                    <small class="text-white-50">{{ user.get_role_display }}</small>
-                    {% if user.role == 'supplier' and user.is_approved_supplier %}
-                    <div class="role-badge supplier mt-1">Verified Supplier ✓</div>
-                    {% endif %}
-                </div>
-                
-                <hr class="bg-white">
-                
-                <ul class="nav nav-pills flex-column">
-                    <!-- Dashboard Overview Link -->
-                    <li class="nav-item">
-                        <a class="nav-link {% if section == 'overview' %}active{% endif %}" 
-                           href="
-                               {% if user.role == 'admin' %}
-                                   {% url 'dashboard:admin' %}
-                               {% elif user.role == 'supplier' or user.is_approved_supplier %}
-                                   {% url 'dashboard:supplier' %}
-                               {% elif user.role == 'team_member' %}
-                                   {% url 'dashboard:team' %}
-                               {% else %}
-                                   {% url 'dashboard:customer' %}
-                               {% endif %}
-                           ">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                    </li>
-                    
-                    <!-- Role-specific sidebar links -->
-                    {% if user.role == 'admin' %}
-                        <!-- Admin Sidebar Links -->
-                        <li class="nav-item">
-                            <a class="nav-link {% if section == 'products' %}active{% endif %}" href="{% url 'dashboard:manage_products' %}">
-                                <i class="fas fa-box"></i> Products
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'orders:admin_orders' %}">
-                                <i class="fas fa-shopping-cart"></i> Orders
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if section == 'suppliers' %}active{% endif %}" href="{% url 'dashboard:manage_suppliers' %}">
-                                <i class="fas fa-store"></i> Suppliers
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if section == 'team' %}active{% endif %}" href="{% url 'dashboard:manage_team' %}">
-                                <i class="fas fa-users"></i> Team Members
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'orders:commission_dashboard' %}">
-                                <i class="fas fa-chart-line"></i> Commissions
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if section == 'logs' %}active{% endif %}" href="{% url 'dashboard:activity_logs' %}">
-                                <i class="fas fa-history"></i> Activity Logs
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if section == 'reports' %}active{% endif %}" href="{% url 'dashboard:reports' %}">
-                                <i class="fas fa-chart-bar"></i> Reports
-                            </a>
-                        </li>
-                    
-                    {% elif user.role == 'supplier' or user.is_approved_supplier %}
-                        <!-- Supplier Sidebar Links -->
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'products:supplier_products' %}">
-                                <i class="fas fa-box"></i> My Products
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'products:supplier_create' %}">
-                                <i class="fas fa-plus-circle"></i> Add Product
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'orders:supplier_orders' %}">
-                                <i class="fas fa-shopping-cart"></i> Orders
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'suppliers:profile' %}">
-                                <i class="fas fa-store"></i> Store Settings
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'suppliers:payout_history' %}">
-                                <i class="fas fa-money-bill-wave"></i> Payouts
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'suppliers:performance_report' %}">
-                                <i class="fas fa-chart-line"></i> Performance
-                            </a>
-                        </li>
-                    
-                    {% elif user.role == 'team_member' %}
-                        <!-- Team Member Sidebar Links -->
-                        {% if user.team_permissions.can_view_products %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'dashboard:manage_products' %}">
-                                <i class="fas fa-box"></i> Products
-                            </a>
-                        </li>
-                        {% endif %}
-                        {% if user.team_permissions.can_view_orders %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'orders:admin_orders' %}">
-                                <i class="fas fa-shopping-cart"></i> Orders
-                            </a>
-                        </li>
-                        {% endif %}
-                        {% if user.team_permissions.can_manage_suppliers %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'dashboard:manage_suppliers' %}">
-                                <i class="fas fa-store"></i> Suppliers
-                            </a>
-                        </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'team:tasks' %}">
-                                <i class="fas fa-tasks"></i> My Tasks
-                            </a>
-                        </li>
-                    
-                    {% else %}
-                        <!-- Customer Sidebar Links -->
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'orders:order_list' %}">
-                                <i class="fas fa-shopping-cart"></i> My Orders
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'products:wishlist' %}">
-                                <i class="fas fa-heart"></i> Wishlist
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:profile' %}">
-                                <i class="fas fa-user"></i> Profile Settings
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'accounts:login_history' %}">
-                                <i class="fas fa-history"></i> Login History
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'suppliers:apply' %}">
-                                <i class="fas fa-store"></i> Become a Supplier
-                            </a>
-                        </li>
-                    {% endif %}
-                    
-                    <!-- Common Links for all roles -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'dashboard:notifications' %}">
-                            <i class="fas fa-bell"></i> Notifications
-                            {% if unread_notifications > 0 %}
-                            <span class="badge bg-danger float-end">{{ unread_notifications }}</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'dashboard:settings' %}">
-                            <i class="fas fa-cog"></i> Settings
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item mt-3">
-                        <hr class="bg-white">
-                        <a class="nav-link text-danger" href="{% url 'accounts:logout' %}">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </a>
-                    </li>
-                </ul>
+<!-- Mobile Sidebar Toggle Button -->
+<button class="sidebar-toggle" id="sidebarToggle">
+    <i class="fas fa-bars"></i>
+</button>
+
+<div class="dashboard-container">
+    <!-- Sidebar - Fixed on left -->
+    <aside class="dashboard-sidebar" id="dashboardSidebar">
+        <div class="user-info">
+            <div class="user-avatar">
+                <i class="fas fa-user-circle"></i>
             </div>
+            <div class="user-name">{{ user.full_name|default:user.email|truncatechars:25 }}</div>
+            <div class="user-role">{{ user.get_role_display }}</div>
+            {% if user.role == 'supplier' and user.is_approved_supplier %}
+            <div class="role-badge supplier">✓ Verified Supplier</div>
+            {% endif %}
         </div>
         
-        <!-- Main Content -->
-        <div class="col-md-9 col-lg-10 p-4">
-            {% block dashboard_content %}
-            <!-- Default content if child template doesn't override -->
-            <div class="text-center py-5">
-                <i class="fas fa-tachometer-alt fa-4x text-muted mb-3"></i>
-                <h3>Welcome to your Dashboard</h3>
-                <p class="text-muted">Select an option from the sidebar to get started.</p>
-            </div>
-            {% endblock %}
+        <ul class="nav flex-column">
+            <!-- Dashboard Overview Link -->
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'overview' %}active{% endif %}" 
+                   href="
+                       {% if user.role == 'admin' %}
+                           {% url 'dashboard:admin' %}
+                       {% elif user.role == 'supplier' or user.is_approved_supplier %}
+                           {% url 'dashboard:supplier' %}
+                       {% elif user.role == 'team_member' %}
+                           {% url 'dashboard:team' %}
+                       {% else %}
+                           {% url 'dashboard:customer' %}
+                       {% endif %}
+                   ">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+            
+            <!-- Role-specific sidebar links -->
+            {% if user.role == 'admin' %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:manage_team' %}">
+                        <i class="fas fa-users"></i> Team Members
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:manage_products' %}">
+                        <i class="fas fa-box"></i> Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'orders:admin_orders' %}">
+                        <i class="fas fa-shopping-cart"></i> Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:manage_suppliers' %}">
+                        <i class="fas fa-store"></i> Suppliers
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:admin_wallet' %}">
+                        <i class="fas fa-wallet"></i> Commission Wallet
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:activity_logs' %}">
+                        <i class="fas fa-history"></i> Activity Logs
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:reports' %}">
+                        <i class="fas fa-chart-bar"></i> Reports
+                    </a>
+                </li>
+            
+            {% elif user.role == 'supplier' or user.is_approved_supplier %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'products:supplier_products' %}">
+                        <i class="fas fa-box"></i> My Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'products:supplier_create' %}">
+                        <i class="fas fa-plus-circle"></i> Add Product
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'orders:supplier_orders' %}">
+                        <i class="fas fa-shopping-cart"></i> Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard:supplier_wallet' %}">
+                        <i class="fas fa-wallet"></i> My Wallet
+                    </a>
+                </li>
+            
+            {% elif user.role == 'team_member' %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'team:tasks' %}">
+                        <i class="fas fa-tasks"></i> My Tasks
+                    </a>
+                </li>
+            
+            {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'orders:order_list' %}">
+                        <i class="fas fa-shopping-cart"></i> My Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'products:wishlist' %}">
+                        <i class="fas fa-heart"></i> Wishlist
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'accounts:profile' %}">
+                        <i class="fas fa-user"></i> Profile Settings
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'suppliers:apply' %}">
+                        <i class="fas fa-store"></i> Become a Supplier
+                    </a>
+                </li>
+            {% endif %}
+            
+            <li class="nav-divider"></li>
+            
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'dashboard:notifications' %}">
+                    <i class="fas fa-bell"></i> Notifications
+                    {% if unread_notifications > 0 %}
+                    <span class="badge">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'dashboard:settings' %}">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </li>
+            
+            <li class="nav-item mt-2">
+                <a class="nav-link text-danger" href="{% url 'accounts:logout' %}">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </li>
+        </ul>
+    </aside>
+    
+    <!-- Main Content - Child templates will appear here -->
+    <main class="dashboard-main">
+        {% block dashboard_content %}
+        <div class="text-center py-5">
+            <i class="fas fa-tachometer-alt fa-4x text-muted mb-3"></i>
+            <h3>Welcome to your Dashboard</h3>
+            <p class="text-muted">Select an option from the sidebar to get started.</p>
         </div>
-    </div>
+        {% endblock %}
+    </main>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-    // Auto-refresh notifications every 30 seconds
-    setInterval(function() {
-        fetch('/dashboard/api/notifications/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.count > 0) {
-                    // Update notification badge
-                    const badge = document.querySelector('.nav-link[href*="notifications"] .badge');
-                    if (badge) {
-                        badge.textContent = data.count;
-                    }
-                }
-            });
-    }, 30000);
+    // Mobile sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const dashboardSidebar = document.getElementById('dashboardSidebar');
+    
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dashboardSidebar.classList.toggle('show');
+        });
+    }
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        if (window.innerWidth <= 768) {
+            const isClickInside = dashboardSidebar?.contains(event.target);
+            const isToggleClick = sidebarToggle?.contains(event.target);
+            
+            if (!isClickInside && !isToggleClick && dashboardSidebar?.classList.contains('show')) {
+                dashboardSidebar.classList.remove('show');
+            }
+        }
+    });
 </script>
 {% endblock %}

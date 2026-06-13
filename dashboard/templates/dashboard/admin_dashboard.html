@@ -4,6 +4,7 @@
 {% block title %}Admin Dashboard - HerosTechnology{% endblock %}
 
 {% block dashboard_content %}
+<!-- Header Section -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-chart-line"></i> Admin Dashboard</h2>
     <div>
@@ -11,7 +12,7 @@
     </div>
 </div>
 
-<!-- Stats Cards -->
+<!-- Stats Cards Row -->
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="stats-card">
@@ -63,7 +64,7 @@
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <small class="text-muted">Available Commission</small>
-                    <h3 class="mb-0">{{ analytics.commission.total_available|floatformat:0 }} FRW</h3>
+                    <h3 class="mb-0 text-warning">{{ analytics.commission.total_available|floatformat:0 }} FRW</h3>
                     <small>Ready for withdrawal</small>
                 </div>
                 <div class="stats-icon bg-warning bg-opacity-10 text-warning">
@@ -75,21 +76,22 @@
 </div>
 
 <div class="row">
-    <!-- Daily Sales Chart -->
+    <!-- Left Column: Sales Chart & Recent Orders -->
     <div class="col-md-8">
-        <div class="card">
+        <!-- Sales Chart Card -->
+        <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0">Last 7 Days Sales</h5>
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Last 7 Days Sales</h5>
             </div>
             <div class="card-body">
                 <canvas id="salesChart" height="250"></canvas>
             </div>
         </div>
         
-        <!-- Recent Orders -->
-        <div class="card mt-4">
+        <!-- Recent Orders Card -->
+        <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Recent Orders</h5>
+                <h5 class="mb-0"><i class="fas fa-truck"></i> Recent Orders</h5>
                 <a href="{% url 'orders:admin_orders' %}" class="btn btn-sm btn-primary">View All</a>
             </div>
             <div class="card-body">
@@ -107,20 +109,20 @@
                         <tbody>
                             {% for order in analytics.recent_orders %}
                             <tr>
-                                <td><strong>{{ order.order_number }}</strong></td>
+                                <td><strong>{{ order.order_number|truncatechars:12 }}</strong></td>
                                 <td>{{ order.customer.email|truncatechars:20 }}</td>
-                                <td>{{ order.grand_total|floatformat:0 }} FRW</td>
+                                <td>{{ order.grand_total|floatformat:0 }} FRW</a>
                                 <td>
                                     <span class="badge {% if order.order_status == 'delivered' %}bg-success{% elif order.order_status == 'pending' %}bg-warning{% elif order.order_status == 'processing' %}bg-info{% elif order.order_status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
                                         {{ order.get_order_status_display }}
                                     </span>
-                                </td>
-                                <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
-                            </tr>
+                                </a>
+                                <td>{{ order.created_at|date:"Y-m-d H:i" }}</a>
+                             </a>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="text-center">No orders found</td>
-                            </tr>
+                                <td colspan="5" class="text-center">No orders found</a>
+                             </a>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -129,17 +131,17 @@
         </div>
     </div>
     
+    <!-- Right Column: Sidebar Widgets -->
     <div class="col-md-4">
-        <!-- Pending Suppliers -->
-        <div class="card">
+        <!-- Pending Suppliers Widget -->
+        <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0">Pending Suppliers</h5>
+                <h5 class="mb-0"><i class="fas fa-store"></i> Pending Suppliers</h5>
             </div>
             <div class="card-body">
                 {% for supplier in recent_suppliers %}
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <!-- FIXED: Use supplier.supplier.email because supplier is SupplierApplication object -->
                         <strong>{{ supplier.business_name|truncatechars:20 }}</strong>
                         <br>
                         <small class="text-muted">{{ supplier.supplier.email|default:"No email" }}</small>
@@ -154,10 +156,10 @@
             </div>
         </div>
         
-        <!-- Pending Withdrawals -->
-        <div class="card mt-4">
+        <!-- Pending Withdrawals Widget -->
+        <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Withdrawal Requests</h5>
+                <h5 class="mb-0"><i class="fas fa-money-bill-wave"></i> Withdrawal Requests</h5>
                 <a href="{% url 'orders:commission_dashboard' %}" class="btn btn-sm btn-primary">View</a>
             </div>
             <div class="card-body">
@@ -179,10 +181,10 @@
             </div>
         </div>
         
-        <!-- Stats Summary -->
-        <div class="card mt-4">
+        <!-- Platform Summary Widget -->
+        <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">Platform Summary</h5>
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Platform Summary</h5>
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">

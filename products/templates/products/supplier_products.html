@@ -1,126 +1,260 @@
-{% extends 'base.html' %}
+{% extends 'dashboard/base_dashboard.html' %}
 {% load static %}
 
-{% block title %}My Products - Supplier Dashboard{% endblock %}
+{% block title %}My Products - HerosTechnology{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-box"></i> My Products</h2>
-        <a href="{% url 'products:supplier_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Add New Product
-        </a>
-    </div>
-    
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Total Products</h5>
-                    <h2 class="mb-0">{{ total_products }}</h2>
+{% block dashboard_content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-box"></i> My Products</h2>
+    <a href="{% url 'products:supplier_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add New Product
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Total Products</small>
+                    <h3 class="mb-0">{{ total_products }}</h3>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Pending Approval</h5>
-                    <h2 class="mb-0">{{ pending_count }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Approved</h5>
-                    <h2 class="mb-0">{{ approved_count }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Out of Stock</h5>
-                    <h2 class="mb-0">{{ out_of_stock_count }}</h2>
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-box"></i>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Products Table -->
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Category</th>
-                            <th>Base Price</th>
-                            <th>Final Price</th>
-                            <th>Exact Stock</th>
-                            <th>Status</th>
-                            <th>Sales</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for product in products %}
-                        <tr>
-                            <td>
-                                <strong>{{ product.name|truncatechars:30 }}</strong>
-                                <br>
-                                <small class="text-muted">{{ product.brand|default:"No brand" }}</small>
-                            </td>
-                            <td>{{ product.category.name }}</td>
-                            <td>{{ product.base_price|floatformat:0 }} FRW</td>
-                            <td>{{ product.final_price|floatformat:0 }} FRW</td>
-                            <td>
-                                <!-- CRITICAL: Supplier sees exact stock quantity -->
-                                <span class="badge {% if product.exact_quantity == 0 %}bg-danger{% elif product.exact_quantity <= product.low_stock_threshold %}bg-warning{% else %}bg-success{% endif %}">
-                                    {{ product.exact_quantity }} units
-                                </span>
-                            </td>
-                            <td>
-                                {% if product.status == 'approved' %}
-                                    <span class="badge bg-success">Approved</span>
-                                {% elif product.status == 'pending_approval' %}
-                                    <span class="badge bg-warning">Pending</span>
-                                {% elif product.status == 'rejected' %}
-                                    <span class="badge bg-danger">Rejected</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ product.status }}</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ product.sales_count }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'products:detail' product.slug %}" class="btn btn-info" target="_blank">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'products:supplier_update' product.id %}" class="btn btn-warning">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="{% url 'products:supplier_stock_update' product.id %}" class="btn btn-primary">
-                                        <i class="fas fa-boxes"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center py-4">
-                                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                                <p>You haven't added any products yet.</p>
-                                <a href="{% url 'products:supplier_create' %}" class="btn btn-primary">Add Your First Product</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <div class="col-md-3 col-sm-6">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Pending Approval</small>
+                    <h3 class="mb-0">{{ pending_count }}</h3>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Approved</small>
+                    <h3 class="mb-0">{{ approved_count }}</h3>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted">Out of Stock</small>
+                    <h3 class="mb-0">{{ out_of_stock_count }}</h3>
+                </div>
+                <div class="stats-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="fas fa-times-circle"></i>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Products Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Product List</h5>
+        <div class="d-flex gap-2">
+            <select id="statusFilter" class="form-select form-select-sm" style="width: 130px;">
+                <option value="">All Status</option>
+                <option value="approved">Approved</option>
+                <option value="pending_approval">Pending</option>
+                <option value="rejected">Rejected</option>
+                <option value="draft">Draft</option>
+            </select>
+            <input type="text" id="searchProduct" class="form-control form-control-sm" placeholder="Search products..." style="width: 200px;">
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="productsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Base Price</th>
+                        <th>Final Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th>Sales</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr data-status="{{ product.status }}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if product.main_image %}
+                                <img src="{{ product.main_image.url }}" alt="{{ product.name }}" 
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" class="me-2">
+                                {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" 
+                                     style="width: 50px; height: 50px;">
+                                    <i class="fas fa-box text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ product.name|truncatechars:35 }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ product.brand|default:"No brand" }}</small>
+                                </div>
+                            </div>
+                         </a>
+                        <td>{{ product.category.name }}</a>
+                        <td>{{ product.base_price|floatformat:0 }} FRW</a>
+                        <td><strong>{{ product.final_price|floatformat:0 }} FRW</strong></a>
+                        <td>
+                            <span class="badge {% if product.exact_quantity == 0 %}bg-danger{% elif product.exact_quantity <= product.low_stock_threshold %}bg-warning{% else %}bg-success{% endif %}">
+                                {{ product.exact_quantity }} units
+                            </span>
+                         </a>
+                        <td>
+                            {% if product.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                            {% elif product.status == 'pending_approval' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% elif product.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ product.status }}</span>
+                            {% endif %}
+                         </a>
+                        <td><span class="badge bg-info">{{ product.sales_count }}</span></a>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'products:detail' product.slug %}" class="btn btn-outline-info" target="_blank" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'products:supplier_update' product.id %}" class="btn btn-outline-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'products:supplier_stock_update' product.id %}" class="btn btn-outline-primary" title="Update Stock">
+                                    <i class="fas fa-boxes"></i>
+                                </a>
+                            </div>
+                         </a>
+                     </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                            <p class="mb-0">You haven't added any products yet.</p>
+                            <a href="{% url 'products:supplier_create' %}" class="btn btn-primary mt-3">
+                                <i class="fas fa-plus"></i> Add Your First Product
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stats-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--secondary-color);
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    
+    .stats-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .table th {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        padding: 0.75rem;
+    }
+    
+    @media (max-width: 768px) {
+        .stats-card {
+            padding: 1rem;
+        }
+        .stats-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+        }
+        .table td {
+            padding: 0.5rem;
+            font-size: 0.7rem;
+        }
+        .btn-group .btn {
+            padding: 0.2rem 0.4rem;
+        }
+    }
+</style>
+
+<script>
+    // Filter by status
+    document.getElementById('statusFilter')?.addEventListener('change', function() {
+        const status = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#productsTable tbody tr');
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status')?.toLowerCase() || '';
+            if (status === '' || rowStatus === status) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    
+    // Search products
+    document.getElementById('searchProduct')?.addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#productsTable tbody tr');
+        
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            if (text.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+</script>
 {% endblock %}

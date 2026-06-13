@@ -1,173 +1,264 @@
-{% extends 'base.html' %}
+{% extends 'dashboard/base_dashboard.html' %}
 {% load static %}
 
 {% block title %}Order #{{ order.order_number }} - HerosTechnology{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'orders:order_list' %}">My Orders</a></li>
-                    <li class="breadcrumb-item active">{{ order.order_number }}</li>
-                </ol>
-            </nav>
+{% block dashboard_content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'orders:order_list' %}">My Orders</a></li>
+        <li class="breadcrumb-item active">{{ order.order_number }}</li>
+    </ol>
+</nav>
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-receipt"></i> Order Details</h2>
+    <span class="badge bg-primary">{{ order.order_number }}</span>
+</div>
+
+<div class="row">
+    <!-- Main Content - Order Items -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-box"></i> Order Items</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        {% if item.product.main_image %}
+                                        <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}" 
+                                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                                        {% else %}
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                             style="width: 50px; height: 50px;">
+                                            <i class="fas fa-box text-muted"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <strong>{{ item.product.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ item.product.brand|default:"No brand" }}</small>
+                                        </div>
+                                    </div>
+                                 </a>
+                                <td>{{ item.quantity }}</a>
+                                <td>{{ item.final_price|floatformat:0 }} FRW</a>
+                                <td><strong>{{ item.get_total_final_price|floatformat:0 }} FRW</strong></a>
+                             </a>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Subtotal (excl. VAT):</strong></a>
+                                <td class="text-end"><strong>{{ order.subtotal_base|floatformat:0 }} FRW</strong></a>
+                             </a>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>VAT (18%):</strong></a>
+                                <td class="text-end"><strong>{{ order.total_vat|floatformat:0 }} FRW</strong></a>
+                             </a>
+                            <tr class="table-active">
+                                <td colspan="3" class="text-end"><strong>Grand Total:</strong></a>
+                                <td class="text-end">
+                                    <strong class="text-primary fs-5">{{ order.grand_total|floatformat:0 }} FRW</strong>
+                                </a>
+                             </a>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
     
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">Order Items</h4>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Quantity</th>
-                                    <th>Unit Price</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in items %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            {% if item.product.main_image %}
-                                            <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" class="me-2">
-                                            {% else %}
-                                            <div class="bg-light rounded d-flex align-items-center justify-content-center me-2" style="width: 50px; height: 50px;">
-                                                <i class="fas fa-box text-muted"></i>
-                                            </div>
-                                            {% endif %}
-                                            <div>
-                                                <strong>{{ item.product.name }}</strong>
-                                                <br>
-                                                <small class="text-muted">{{ item.product.brand|default:"No brand" }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>{{ item.quantity }}</td>
-                                    <td>{{ item.final_price|floatformat:0 }} FRW</td>
-                                    <td><strong>{{ item.get_total_final_price|floatformat:0 }} FRW</strong></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3" class="text-end"><strong>Subtotal (excl. VAT):</strong></td>
-                                    <td><strong>{{ order.subtotal_base|floatformat:0 }} FRW</strong></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="3" class="text-end"><strong>VAT (18%):</strong></td>
-                                    <td><strong>{{ order.total_vat|floatformat:0 }} FRW</strong></td>
-                                </tr>
-                                <tr class="table-active">
-                                    <td colspan="3" class="text-end"><strong>Grand Total:</strong></td>
-                                    <td><strong class="text-primary h5">{{ order.grand_total|floatformat:0 }} FRW</strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
+    <!-- Sidebar - Order Info -->
+    <div class="col-lg-4">
+        <!-- Order Status Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Order Status</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if order.order_status == 'pending' %}
+                    <i class="fas fa-clock fa-3x text-warning mb-2"></i>
+                    <h5 class="text-warning">Pending</h5>
+                    <p class="small">Your order is waiting for confirmation</p>
+                {% elif order.order_status == 'processing' %}
+                    <i class="fas fa-cogs fa-3x text-info mb-2"></i>
+                    <h5 class="text-info">Processing</h5>
+                    <p class="small">Your order is being prepared</p>
+                {% elif order.order_status == 'shipped' %}
+                    <i class="fas fa-truck fa-3x text-primary mb-2"></i>
+                    <h5 class="text-primary">Shipped</h5>
+                    <p class="small">Your order is on the way</p>
+                {% elif order.order_status == 'delivered' %}
+                    <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                    <h5 class="text-success">Delivered</h5>
+                    <p class="small">Your order has been delivered</p>
+                {% elif order.order_status == 'cancelled' %}
+                    <i class="fas fa-times-circle fa-3x text-danger mb-2"></i>
+                    <h5 class="text-danger">Cancelled</h5>
+                    <p class="small">Your order has been cancelled</p>
+                {% endif %}
+                
+                <hr>
+                <small class="text-muted">Order Date: {{ order.created_at|date:"F j, Y H:i" }}</small>
+                {% if order.delivered_at %}
+                <br>
+                <small class="text-muted">Delivered: {{ order.delivered_at|date:"F j, Y" }}</small>
+                {% endif %}
             </div>
         </div>
         
-        <div class="col-md-4">
-            <!-- Order Status -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h5 class="mb-0">Order Status</h5>
-                </div>
-                <div class="card-body">
-                    <div class="text-center">
-                        {% if order.order_status == 'pending' %}
-                        <i class="fas fa-clock fa-3x text-warning mb-2"></i>
-                        <h5 class="text-warning">Pending</h5>
-                        <p>Your order is waiting for confirmation</p>
-                        {% elif order.order_status == 'processing' %}
-                        <i class="fas fa-cogs fa-3x text-info mb-2"></i>
-                        <h5 class="text-info">Processing</h5>
-                        <p>Your order is being prepared</p>
-                        {% elif order.order_status == 'shipped' %}
-                        <i class="fas fa-truck fa-3x text-primary mb-2"></i>
-                        <h5 class="text-primary">Shipped</h5>
-                        <p>Your order is on the way</p>
-                        {% elif order.order_status == 'delivered' %}
-                        <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
-                        <h5 class="text-success">Delivered</h5>
-                        <p>Your order has been delivered</p>
-                        {% elif order.order_status == 'cancelled' %}
-                        <i class="fas fa-times-circle fa-3x text-danger mb-2"></i>
-                        <h5 class="text-danger">Cancelled</h5>
-                        <p>Your order has been cancelled</p>
-                        {% endif %}
-                        
-                        <hr>
-                        <small class="text-muted">Order Date: {{ order.created_at|date:"F j, Y H:i" }}</small>
-                        {% if order.delivered_at %}
-                        <br>
-                        <small class="text-muted">Delivered: {{ order.delivered_at|date:"F j, Y" }}</small>
-                        {% endif %}
-                    </div>
-                </div>
+        <!-- Shipping Information Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-truck"></i> Shipping Information</h5>
             </div>
-            
-            <!-- Shipping Information -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h5 class="mb-0">Shipping Information</h5>
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                    <strong>Address:</strong>
+                    <p class="mb-0 mt-1 ps-4">{{ order.shipping_address }}</p>
                 </div>
-                <div class="card-body">
-                    <p><i class="fas fa-map-marker-alt"></i> <strong>Address:</strong><br>{{ order.shipping_address }}</p>
-                    <p><i class="fas fa-city"></i> <strong>City:</strong><br>{{ order.shipping_city }}</p>
-                    <p><i class="fas fa-phone"></i> <strong>Phone:</strong><br>{{ order.shipping_phone }}</p>
-                    {% if order.shipping_notes %}
-                    <p><i class="fas fa-sticky-note"></i> <strong>Notes:</strong><br>{{ order.shipping_notes }}</p>
-                    {% endif %}
+                <div class="mb-2">
+                    <i class="fas fa-city text-primary me-2"></i>
+                    <strong>City:</strong>
+                    <p class="mb-0 mt-1 ps-4">{{ order.shipping_city|default:"Kigali" }}</p>
                 </div>
+                <div class="mb-2">
+                    <i class="fas fa-phone text-primary me-2"></i>
+                    <strong>Phone:</strong>
+                    <p class="mb-0 mt-1 ps-4">{{ order.shipping_phone }}</p>
+                </div>
+                {% if order.shipping_notes %}
+                <div class="mb-2">
+                    <i class="fas fa-sticky-note text-primary me-2"></i>
+                    <strong>Notes:</strong>
+                    <p class="mb-0 mt-1 ps-4">{{ order.shipping_notes }}</p>
+                </div>
+                {% endif %}
             </div>
-            
-            <!-- Payment Information -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h5 class="mb-0">Payment Information</h5>
+        </div>
+        
+        <!-- Payment Information Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-credit-card"></i> Payment Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="fas fa-money-bill-wave text-primary me-2"></i>
+                    <strong>Method:</strong>
+                    <p class="mb-0 mt-1 ps-4">{{ order.get_payment_method_display }}</p>
                 </div>
-                <div class="card-body">
-                    <p><i class="fas fa-credit-card"></i> <strong>Method:</strong><br>{{ order.get_payment_method_display }}</p>
-                    <p><i class="fas fa-check-circle"></i> <strong>Status:</strong><br>
+                <div class="mb-2">
+                    <i class="fas fa-check-circle text-primary me-2"></i>
+                    <strong>Status:</strong>
+                    <p class="mb-0 mt-1 ps-4">
                         {% if order.payment_status == 'paid' or order.payment_status == 'simulated' %}
-                        <span class="badge bg-success">Paid</span>
+                            <span class="badge bg-success">Paid</span>
                         {% else %}
-                        <span class="badge bg-warning">Pending</span>
+                            <span class="badge bg-warning">Pending</span>
                         {% endif %}
                     </p>
-                    {% if order.paid_at %}
-                    <p><i class="fas fa-calendar"></i> <strong>Paid At:</strong><br>{{ order.paid_at|date:"F j, Y H:i" }}</p>
-                    {% endif %}
                 </div>
+                {% if order.paid_at %}
+                <div class="mb-2">
+                    <i class="fas fa-calendar text-primary me-2"></i>
+                    <strong>Paid At:</strong>
+                    <p class="mb-0 mt-1 ps-4">{{ order.paid_at|date:"F j, Y H:i" }}</p>
+                </div>
+                {% endif %}
             </div>
-            
-            <!-- Actions -->
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{% url 'orders:download_receipt' order.id %}" class="btn btn-primary">
-                            <i class="fas fa-download"></i> Download Receipt
-                        </a>
-                        <a href="{% url 'products:list' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-shopping"></i> Continue Shopping
-                        </a>
-                    </div>
+        </div>
+        
+        <!-- Actions Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'orders:download_receipt' order.id %}" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Download Receipt
+                    </a>
+                    <a href="{% url 'products:list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-shopping-cart"></i> Continue Shopping
+                    </a>
+                    {% if order.order_status == 'pending' %}
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+                        <i class="fas fa-times"></i> Cancel Order
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Cancel Order Modal -->
+{% if order.order_status == 'pending' %}
+<div class="modal fade" id="cancelOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                </div>
+                <p>Are you sure you want to cancel order <strong>{{ order.order_number }}</strong>?</p>
+                <div class="alert alert-warning small">
+                    <i class="fas fa-info-circle"></i>
+                    This action cannot be undone. The amount will be refunded to your wallet.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{% url 'orders:cancel_order' order.id %}" class="btn btn-danger">Cancel Order</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    @media (max-width: 768px) {
+        .table td {
+            font-size: 0.7rem;
+        }
+        .card-header h5 {
+            font-size: 0.9rem;
+        }
+    }
+</style>
 {% endblock %}

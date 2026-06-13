@@ -1,147 +1,241 @@
-{% extends 'base.html' %}
+{% extends 'dashboard/base_dashboard.html' %}
 {% load static %}
 
 {% block title %}Become a Supplier - HerosTechnology{% endblock %}
 
-{% block content %}
-<div class="container mt-5 mb-5">
+{% block dashboard_content %}
+<div class="container">
     <div class="row justify-content-center">
         <div class="col-lg-10">
-            <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-header bg-primary text-white rounded-top-4">
-                    <h3 class="mb-0"><i class="fas fa-store"></i> Supplier Application Form</h3>
-                    <p class="mb-0">Join our marketplace and grow your business</p>
+            <!-- Header Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-store"></i> Supplier Application Form</h4>
+                    <p class="mb-0 small opacity-75">Join our marketplace and grow your business</p>
                 </div>
-                <div class="card-body p-5">
-                    <form method="post" enctype="multipart/form-data">
+                <div class="card-body p-4">
+                    <!-- Info Alert -->
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Please fill out all required fields accurately. Your application will be reviewed within 2-3 business days.
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data" novalidate>
                         {% csrf_token %}
                         
                         <!-- Business Information -->
-                        <h4 class="mb-3"><i class="fas fa-building"></i> Business Information</h4>
+                        <h5 class="mb-3"><i class="fas fa-building text-primary"></i> Business Information</h5>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Business Name *</label>
+                                <label class="form-label fw-bold">Business Name <span class="text-danger">*</span></label>
                                 {{ form.business_name }}
                                 {% if form.business_name.errors %}
-                                    <div class="text-danger small">{{ form.business_name.errors }}</div>
+                                    <div class="text-danger small mt-1">{{ form.business_name.errors.0 }}</div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Business Type</label>
+                                <label class="form-label fw-bold">Business Type</label>
                                 {{ form.business_type }}
+                                {% if form.business_type.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_type.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Tax ID (TIN)</label>
+                                <label class="form-label fw-bold">Tax ID (TIN)</label>
                                 {{ form.tax_id }}
-                                <small class="text-muted">Optional but recommended</small>
+                                {% if form.tax_id.errors %}
+                                    <div class="text-danger small mt-1">{{ form.tax_id.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Optional but recommended</div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Registration Number</label>
+                                <label class="form-label fw-bold">Registration Number</label>
                                 {{ form.registration_number }}
+                                {% if form.registration_number.errors %}
+                                    <div class="text-danger small mt-1">{{ form.registration_number.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         
                         <!-- Contact Information -->
-                        <h4 class="mb-3 mt-4"><i class="fas fa-phone-alt"></i> Contact Information</h4>
+                        <h5 class="mb-3 mt-4"><i class="fas fa-phone-alt text-primary"></i> Contact Information</h5>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Business Phone *</label>
+                                <label class="form-label fw-bold">Business Phone <span class="text-danger">*</span></label>
                                 {{ form.business_phone }}
+                                {% if form.business_phone.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_phone.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Business Email *</label>
+                                <label class="form-label fw-bold">Business Email <span class="text-danger">*</span></label>
                                 {{ form.business_email }}
+                                {% if form.business_email.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_email.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-12 mb-3">
-                                <label class="form-label fw-semibold">Business Address *</label>
+                                <label class="form-label fw-bold">Business Address <span class="text-danger">*</span></label>
                                 {{ form.business_address }}
+                                {% if form.business_address.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_address.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">City</label>
+                                <label class="form-label fw-bold">City</label>
                                 {{ form.business_city }}
+                                {% if form.business_city.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_city.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Country</label>
+                                <label class="form-label fw-bold">Country</label>
                                 {{ form.business_country }}
+                                {% if form.business_country.errors %}
+                                    <div class="text-danger small mt-1">{{ form.business_country.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Website</label>
+                                <label class="form-label fw-bold">Website</label>
                                 {{ form.website }}
+                                {% if form.website.errors %}
+                                    <div class="text-danger small mt-1">{{ form.website.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Your business website URL (optional)</div>
                             </div>
                         </div>
                         
                         <!-- Business Details -->
-                        <h4 class="mb-3 mt-4"><i class="fas fa-chart-line"></i> Business Details</h4>
+                        <h5 class="mb-3 mt-4"><i class="fas fa-chart-line text-primary"></i> Business Details</h5>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Years in Business</label>
+                                <label class="form-label fw-bold">Years in Business</label>
                                 {{ form.years_in_business }}
+                                {% if form.years_in_business.errors %}
+                                    <div class="text-danger small mt-1">{{ form.years_in_business.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Est. Monthly Volume (FRW)</label>
+                                <label class="form-label fw-bold">Est. Monthly Volume (FRW)</label>
                                 {{ form.estimated_monthly_volume }}
+                                {% if form.estimated_monthly_volume.errors %}
+                                    <div class="text-danger small mt-1">{{ form.estimated_monthly_volume.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-12 mb-3">
-                                <label class="form-label fw-semibold">Interested Categories</label>
+                                <label class="form-label fw-bold">Interested Categories</label>
                                 {{ form.interested_categories }}
-                                <small class="text-muted">Hold Ctrl to select multiple</small>
+                                {% if form.interested_categories.errors %}
+                                    <div class="text-danger small mt-1">{{ form.interested_categories.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple categories</div>
                             </div>
                             <div class="col-12 mb-3">
-                                <label class="form-label fw-semibold">Additional Notes</label>
+                                <label class="form-label fw-bold">Additional Notes</label>
                                 {{ form.notes }}
+                                {% if form.notes.errors %}
+                                    <div class="text-danger small mt-1">{{ form.notes.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Any additional information you'd like to share (optional)</div>
                             </div>
                         </div>
                         
-                        <!-- Documents -->
-                        <h4 class="mb-3 mt-4"><i class="fas fa-file-alt"></i> Required Documents</h4>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> Please upload clear, legible copies of the following documents (PDF, JPG, PNG - max 10MB each)
+                        <!-- Required Documents -->
+                        <h5 class="mb-3 mt-4"><i class="fas fa-file-alt text-primary"></i> Required Documents</h5>
+                        <div class="alert alert-warning small">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Document Guidelines:</strong> Please upload clear, legible copies of the following documents (PDF, JPG, PNG - max 10MB each)
                         </div>
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Business License/Certificate *</label>
+                                <label class="form-label fw-bold">Business License/Certificate <span class="text-danger">*</span></label>
                                 {{ form.business_license }}
                                 {% if form.business_license.errors %}
-                                    <div class="text-danger small">{{ form.business_license.errors }}</div>
+                                    <div class="text-danger small mt-1">{{ form.business_license.errors.0 }}</div>
                                 {% endif %}
+                                <div class="form-text">Upload your business registration certificate</div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Government ID (Passport/National ID) *</label>
+                                <label class="form-label fw-bold">Government ID <span class="text-danger">*</span></label>
                                 {{ form.id_document }}
                                 {% if form.id_document.errors %}
-                                    <div class="text-danger small">{{ form.id_document.errors }}</div>
+                                    <div class="text-danger small mt-1">{{ form.id_document.errors.0 }}</div>
                                 {% endif %}
+                                <div class="form-text">Passport or National ID</div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Tax Clearance Certificate</label>
+                                <label class="form-label fw-bold">Tax Clearance Certificate</label>
                                 {{ form.tax_clearance }}
+                                {% if form.tax_clearance.errors %}
+                                    <div class="text-danger small mt-1">{{ form.tax_clearance.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Optional but recommended</div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">Bank Statement (for payouts)</label>
+                                <label class="form-label fw-bold">Bank Statement</label>
                                 {{ form.bank_statement }}
+                                {% if form.bank_statement.errors %}
+                                    <div class="text-danger small mt-1">{{ form.bank_statement.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">For payout processing (optional)</div>
                             </div>
                         </div>
                         
-                        <!-- Terms -->
-                        <div class="form-check mb-4">
+                        <!-- Terms and Conditions -->
+                        <div class="form-check mb-4 mt-3">
                             {{ form.terms_agreed }}
                             <label class="form-check-label">
                                 I confirm that all information provided is accurate and I agree to the 
                                 <a href="#" target="_blank">Supplier Terms and Conditions</a>
+                                <span class="text-danger">*</span>
                             </label>
                             {% if form.terms_agreed.errors %}
-                                <div class="text-danger small">{{ form.terms_agreed.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.terms_agreed.errors.0 }}</div>
                             {% endif %}
                         </div>
                         
-                        <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="fas fa-paper-plane"></i> Submit Application
-                        </button>
+                        <hr>
+                        
+                        <div class="d-flex justify-content-between gap-2">
+                            <a href="{% url 'dashboard:customer' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Submit Application
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .form-text {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #E67E22;
+        box-shadow: 0 0 0 0.2rem rgba(230,126,34,0.25);
+    }
+    
+    .card-header {
+        border-bottom: none;
+    }
+    
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+</style>
 {% endblock %}

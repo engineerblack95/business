@@ -3,384 +3,91 @@
 
 {% block title %}Manage Team - HerosTechnology{% endblock %}
 
-{% block extra_css %}
-<style>
-    :root {
-        --primary-color: #2C3E50;
-        --secondary-color: #E67E22;
-        --accent-color: #3498DB;
-        --success-color: #27AE60;
-        --danger-color: #E74C3C;
-        --warning-color: #F39C12;
-        --dark-color: #1A252F;
-        --light-color: #ECF0F1;
-    }
-    
-    /* Responsive Styles */
-    .permission-badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 500;
-        margin: 2px;
-    }
-    .permission-badge.order { background: #e3f2fd; color: #1565c0; }
-    .permission-badge.product { background: #e8f5e9; color: #2e7d32; }
-    .permission-badge.edit-product { background: #fff3e0; color: #e65100; }
-    .permission-badge.approve-product { background: #e0f7fa; color: #006064; }
-    .permission-badge.supplier { background: #fce4ec; color: #c2185b; }
-    .permission-badge.financial { background: #f3e5f5; color: #6a1b9a; }
-    .permission-badge.logs { background: #e8eaf6; color: #283593; }
-    
-    .team-avatar {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 18px;
-    }
-    
-    .team-avatar-sm {
-        width: 35px;
-        height: 35px;
-        font-size: 14px;
-    }
-    
-    .role-badge {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: bold;
-    }
-    .role-badge.admin { background: #dc3545; color: white; }
-    .role-badge.team-member { background: #28a745; color: white; }
-    .role-badge.supplier { background: #fd7e14; color: white; }
-    .role-badge.customer { background: #6c757d; color: white; }
-    
-    /* Add Member Modal Enhanced Styles */
-    .modal-stepper {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 2rem;
-        position: relative;
-    }
-    
-    .modal-stepper::before {
-        content: '';
-        position: absolute;
-        top: 20px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: #e0e0e0;
-        z-index: 1;
-    }
-    
-    .step {
-        position: relative;
-        z-index: 2;
-        background: white;
-        text-align: center;
-        flex: 1;
-    }
-    
-    .step-circle {
-        width: 40px;
-        height: 40px;
-        background: #e0e0e0;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 8px;
-        font-weight: bold;
-        color: #666;
-        transition: all 0.3s ease;
-    }
-    
-    .step.active .step-circle {
-        background: var(--secondary-color);
-        color: white;
-    }
-    
-    .step.completed .step-circle {
-        background: var(--success-color);
-        color: white;
-    }
-    
-    .step-label {
-        font-size: 12px;
-        color: #666;
-    }
-    
-    .step.active .step-label {
-        color: var(--secondary-color);
-        font-weight: 600;
-    }
-    
-    .permission-card {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-    }
-    
-    .permission-group {
-        margin-bottom: 1rem;
-    }
-    
-    .permission-group h6 {
-        color: var(--primary-color);
-        font-weight: 600;
-        margin-bottom: 0.75rem;
-        font-size: 0.9rem;
-    }
-    
-    .form-check {
-        margin-bottom: 0.75rem;
-        padding-left: 2rem;
-    }
-    
-    .form-check-input:checked {
-        background-color: var(--secondary-color);
-        border-color: var(--secondary-color);
-    }
-    
-    .form-check-label {
-        font-weight: 500;
-        color: #333;
-        cursor: pointer;
-        font-size: 0.85rem;
-    }
-    
-    .form-check-label small {
-        font-weight: normal;
-        color: #6c757d;
-        font-size: 0.7rem;
-        margin-left: 0.25rem;
-    }
-    
-    .required-field::after {
-        content: '*';
-        color: var(--danger-color);
-        margin-left: 4px;
-    }
-    
-    .email-suggestion {
-        background: #e8f5e9;
-        border-radius: 8px;
-        padding: 0.5rem;
-        margin-top: 0.5rem;
-        font-size: 0.8rem;
-    }
-    
-    .btn-primary-custom {
-        background: var(--secondary-color);
-        border: none;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-primary-custom:hover {
-        background: #D35400;
-        transform: translateY(-2px);
-    }
-    
-    /* Image Preview Styles */
-    .image-preview {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid var(--secondary-color);
-        margin-bottom: 10px;
-    }
-    
-    .image-preview-placeholder {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 40px;
-        margin-bottom: 10px;
-    }
-    
-    .social-input-group {
-        position: relative;
-    }
-    
-    .social-input-group .input-group-text {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-    }
-    
-    @media (max-width: 768px) {
-        .table th, .table td {
-            font-size: 0.75rem;
-            padding: 0.5rem;
-        }
-        .team-avatar {
-            width: 35px;
-            height: 35px;
-            font-size: 14px;
-        }
-        .permission-badge {
-            font-size: 9px;
-            padding: 2px 6px;
-        }
-        .btn-group .btn {
-            padding: 0.25rem 0.5rem;
-        }
-        .step-circle {
-            width: 30px;
-            height: 30px;
-            font-size: 12px;
-        }
-        .step-label {
-            font-size: 10px;
-        }
-    }
-    
-    /* Modal Styles */
-    .modal-content {
-        border-radius: 15px;
-    }
-    
-    .modal-header {
-        border-bottom: 2px solid var(--secondary-color);
-        background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
-        color: white;
-        border-radius: 15px 15px 0 0;
-    }
-    
-    .modal-header .btn-close {
-        filter: brightness(0) invert(1);
-    }
-    
-    .form-control:focus, .form-select:focus {
-        border-color: var(--secondary-color);
-        box-shadow: 0 0 0 0.2rem rgba(230, 126, 34, 0.25);
-    }
-    
-    .expertise-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 8px;
-    }
-    
-    .expertise-tag {
-        background: #e8f5e9;
-        color: #2e7d32;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .expertise-tag i {
-        cursor: pointer;
-        font-size: 10px;
-    }
-</style>
-{% endblock %}
-
 {% block dashboard_content %}
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-2">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-users"></i> Manage Team Members</h2>
     <div>
-        <h2 class="fs-2 fs-md-1 mb-1"><i class="fas fa-users"></i> Manage Team Members</h2>
-        <p class="text-muted mb-0 small">Add, edit, and manage team member permissions</p>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamMemberModal">
+            <i class="fas fa-plus"></i> Add Team Member
+        </button>
     </div>
-    <button type="button" class="btn btn-primary-custom btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamMemberModal">
-        <i class="fas fa-plus"></i> Add Team Member
-    </button>
 </div>
 
-<!-- Statistics Cards -->
+<!-- Statistics Cards Row -->
 <div class="row mb-4">
-    <div class="col-md-3 col-6 mb-2">
-        <div class="card bg-primary text-white">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-white-50">Total Team</small>
-                        <h3 class="mb-0">{{ team_members|length }}</h3>
-                    </div>
-                    <i class="fas fa-users fa-2x opacity-50"></i>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Total Team</small>
+                    <h3 class="mb-0">{{ team_members|length }}</h3>
+                </div>
+                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-users"></i>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-6 mb-2">
-        <div class="card bg-success text-white">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-white-50">Active Members</small>
-                        <h3 class="mb-0">{{ team_members|length }}</h3>
-                    </div>
-                    <i class="fas fa-user-check fa-2x opacity-50"></i>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">With Permissions</small>
+                    <h3 class="mb-0">{{ team_members_with_perms }}</h3>
+                </div>
+                <div class="stats-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-key"></i>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-6 mb-2">
-        <div class="card bg-info text-white">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-white-50">With Permissions</small>
-                        <h3 class="mb-0">{{ team_members_with_perms }}</h3>
-                    </div>
-                    <i class="fas fa-key fa-2x opacity-50"></i>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Registered Users</small>
+                    <h3 class="mb-0">{{ total_customers }}</h3>
+                </div>
+                <div class="stats-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-user-plus"></i>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-6 mb-2">
-        <div class="card bg-warning text-dark">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-dark-50">Registered Users</small>
-                        <h3 class="mb-0">{{ total_customers }}</h3>
-                    </div>
-                    <i class="fas fa-user-plus fa-2x opacity-50"></i>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <small class="text-muted">Admin Access</small>
+                    <h3 class="mb-0">{{ team_members|length }}</h3>
+                </div>
+                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-crown"></i>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Team Members List -->
+<!-- Team Members List Card -->
 <div class="card">
-    <div class="card-header bg-white">
-        <div class="row align-items-center">
-            <div class="col">
-                <i class="fas fa-list me-2"></i> Team Members List
-            </div>
-            <div class="col-auto">
-                <input type="text" id="searchTeam" class="form-control form-control-sm" placeholder="Search members..." style="width: 200px;">
-            </div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Team Members List</h5>
+        <div class="d-flex gap-2">
+            <input type="text" id="searchTeam" class="form-control form-control-sm" placeholder="Search members..." style="width: 200px;">
+            <select id="roleFilter" class="form-select form-select-sm" style="width: 130px;">
+                <option value="">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="team_member">Team Member</option>
+                <option value="supplier">Supplier</option>
+                <option value="customer">Customer</option>
+            </select>
         </div>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-hover mb-0" id="teamTable">
-                <thead class="table-light">
+            <table class="table table-hover" id="teamTable">
+                <thead>
                     <tr>
                         <th>#</th>
                         <th>Team Member</th>
@@ -397,19 +104,20 @@
                     <tr>
                         <td>{{ forloop.counter }}</td>
                         <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="team-avatar team-avatar-sm">
-                                    {{ member.full_name|default:member.email|slice:":1"|upper }}
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user text-white"></i>
                                 </div>
                                 <div>
-                                    <strong class="small d-block">{{ member.full_name|default:"—" }}</strong>
+                                    <strong>{{ member.full_name|default:member.email|truncatechars:25 }}</strong>
+                                    <br>
                                     <small class="text-muted">{{ member.email|truncatechars:20 }}</small>
                                 </div>
                             </div>
-                        </a>
+                         </a>
                         <td>
                             <small>{{ member.phone|default:"—" }}</small>
-                        </a>
+                         </a>
                         <td>
                             {% if member.team_display %}
                                 <small>{{ member.team_display.get_display_position }}</small>
@@ -421,49 +129,51 @@
                             {% if member.role == 'team_member' and member.team_permissions %}
                                 <div class="d-flex flex-wrap gap-1">
                                     {% if member.team_permissions.can_view_orders %}
-                                    <span class="permission-badge order">Orders</span>
+                                    <span class="badge bg-info">Orders</span>
                                     {% endif %}
                                     {% if member.team_permissions.can_view_products %}
-                                    <span class="permission-badge product">View Products</span>
+                                    <span class="badge bg-success">Products</span>
                                     {% endif %}
                                     {% if member.team_permissions.can_edit_products %}
-                                    <span class="permission-badge edit-product">Edit Products</span>
+                                    <span class="badge bg-warning">Edit</span>
                                     {% endif %}
                                     {% if member.team_permissions.can_approve_products %}
-                                    <span class="permission-badge approve-product">Approve</span>
+                                    <span class="badge bg-primary">Approve</span>
                                     {% endif %}
                                     {% if member.team_permissions.can_manage_suppliers %}
-                                    <span class="permission-badge supplier">Suppliers</span>
-                                    {% endif %}
-                                    {% if member.team_permissions.can_view_financial %}
-                                    <span class="permission-badge financial">Financial</span>
-                                    {% endif %}
-                                    {% if member.team_permissions.can_view_logs %}
-                                    <span class="permission-badge logs">Logs</span>
+                                    <span class="badge bg-secondary">Suppliers</span>
                                     {% endif %}
                                 </div>
                                 {% if not member.team_permissions.can_view_orders and not member.team_permissions.can_view_products %}
                                 <span class="text-muted small">No permissions</span>
                                 {% endif %}
                             {% elif member.role == 'admin' %}
-                                <span class="permission-badge order">Admin (Full Access)</span>
+                                <span class="badge bg-danger">Admin (Full Access)</span>
                             {% else %}
                                 <span class="text-muted small">No permissions</span>
                             {% endif %}
                          </a>
                         <td>
-                            <span class="role-badge {% if member.role == 'admin' %}admin{% elif member.role == 'team_member' %}team-member{% elif member.role == 'supplier' %}supplier{% else %}customer{% endif %}">
-                                {{ member.get_role_display }}
-                            </span>
+                            {% if member.role == 'admin' %}
+                            <span class="badge bg-danger">Admin</span>
+                            {% elif member.role == 'team_member' %}
+                            <span class="badge bg-success">Team Member</span>
+                            {% elif member.role == 'supplier' %}
+                            <span class="badge bg-warning">Supplier</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Customer</span>
+                            {% endif %}
                          </a>
-                        <td><small>{{ member.date_joined|date:"M d, Y" }}</small></a>
+                        <td>
+                            <small>{{ member.date_joined|date:"Y-m-d" }}</small>
+                         </a>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="{% url 'dashboard:edit_team_member' member.id %}" class="btn btn-outline-warning" title="Edit">
+                                <a href="{% url 'dashboard:edit_team_member' member.id %}" class="btn btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 {% if member.role != 'admin' %}
-                                <button type="button" class="btn btn-outline-danger" title="Remove" data-bs-toggle="modal" data-bs-target="#removeModal{{ member.id }}">
+                                <button type="button" class="btn btn-danger" title="Remove" data-bs-toggle="modal" data-bs-target="#removeModal{{ member.id }}">
                                     <i class="fas fa-trash"></i>
                                 </button>
                                 {% endif %}
@@ -482,10 +192,10 @@
                                             </div>
                                             <div class="modal-body">
                                                 <div class="text-center mb-3">
-                                                    <i class="fas fa-user-slash fa-4x text-danger mb-3"></i>
+                                                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
                                                     <p>Are you sure you want to remove <strong>{{ member.full_name|default:member.email }}</strong> from the team?</p>
                                                     <div class="alert alert-warning small">
-                                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                                        <i class="fas fa-info-circle"></i>
                                                         This action will:
                                                         <ul class="mb-0 mt-2">
                                                             <li>Revoke all team permissions</li>
@@ -509,291 +219,135 @@
                     {% empty %}
                     <tr>
                         <td colspan="8" class="text-center py-5">
-                            <i class="fas fa-users-slash fa-4x text-muted mb-3"></i>
-                            <p class="mb-2">No team members added yet.</p>
-                            <p class="text-muted small mb-3">Add your first team member to start managing permissions.</p>
-                            <button type="button" class="btn btn-primary-custom btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamMemberModal">
+                            <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                            <p class="mb-0">No team members added yet.</p>
+                            <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addTeamMemberModal">
                                 <i class="fas fa-plus"></i> Add Your First Team Member
                             </button>
-                        </td>
-                    </tr>
+                         </a>
+                     </a>
                     {% endfor %}
                 </tbody>
-            </table>
+             </table>
         </div>
+        
+        <!-- Pagination -->
+        {% if team_members.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if team_members.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ team_members.previous_page_number }}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for num in team_members.paginator.page_range %}
+                    {% if team_members.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > team_members.number|add:'-3' and num < team_members.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if team_members.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ team_members.next_page_number }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     </div>
 </div>
 
-<!-- ==================== PROFESSIONAL ADD TEAM MEMBER MODAL ==================== -->
-<div class="modal fade" id="addTeamMemberModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
+<!-- Add Team Member Modal (Simplified) -->
+<div class="modal fade" id="addTeamMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <form method="post" action="{% url 'dashboard:manage_team' %}" id="addTeamMemberForm" enctype="multipart/form-data">
+            <form method="post" action="{% url 'dashboard:manage_team' %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-user-plus me-2"></i> Add New Team Member
-                    </h5>
+                    <h5 class="modal-title"><i class="fas fa-user-plus"></i> Add Team Member</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Step Indicator -->
-                    <div class="modal-stepper">
-                        <div class="step active" id="step1">
-                            <div class="step-circle">1</div>
-                            <div class="step-label">User Account</div>
-                        </div>
-                        <div class="step" id="step2">
-                            <div class="step-circle">2</div>
-                            <div class="step-label">Personal Info</div>
-                        </div>
-                        <div class="step" id="step3">
-                            <div class="step-circle">3</div>
-                            <div class="step-label">Profile & Social</div>
-                        </div>
-                        <div class="step" id="step4">
-                            <div class="step-circle">4</div>
-                            <div class="step-label">Permissions</div>
-                        </div>
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Important:</strong> The user must already have a registered customer account on the system.
                     </div>
                     
-                    <!-- Step 1: User Account Verification -->
-                    <div id="step1Content" class="step-content">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Important:</strong> The user must already have a registered customer account on the system.
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label class="form-label fw-bold required-field">
-                                <i class="fas fa-envelope" style="color: var(--secondary-color);"></i> Registered Email Address
-                            </label>
-                            <input type="email" name="email" id="userEmail" class="form-control form-control-lg" 
-                                   placeholder="Enter registered customer email" required>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control" placeholder="Enter registered email" required>
                             <small class="text-muted">Must be an existing user email in the system</small>
-                            <div id="emailValidationResult" class="mt-2"></div>
                         </div>
-                        
-                        <div class="email-suggestion" id="emailHelpBlock">
-                            <i class="fas fa-lightbulb text-warning me-2"></i>
-                            <strong>Tip:</strong> The user will keep their existing account data (order history, profile, etc.) 
-                            and will gain team member permissions.
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Full Name</label>
+                            <input type="text" name="full_name" class="form-control" placeholder="Full name">
                         </div>
-                    </div>
-                    
-                    <!-- Step 2: Personal Information -->
-                    <div id="step2Content" class="step-content" style="display: none;">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-user" style="color: var(--secondary-color);"></i> Full Name
-                                </label>
-                                <input type="text" name="full_name" id="fullName" class="form-control" 
-                                       placeholder="Enter full name">
-                                <small class="text-muted">Optional - will use existing if left blank</small>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-phone" style="color: var(--secondary-color);"></i> Phone Number
-                                </label>
-                                <input type="tel" name="phone" id="phone" class="form-control" 
-                                       placeholder="Enter phone number">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-briefcase" style="color: var(--secondary-color);"></i> Position
-                                </label>
-                                <select name="position" id="position" class="form-select">
-                                    <option value="">Select Position</option>
-                                    <option value="operations">Operations Manager</option>
-                                    <option value="sales">Sales Manager</option>
-                                    <option value="support">Customer Support</option>
-                                    <option value="procurement">Procurement Specialist</option>
-                                    <option value="logistics">Logistics Coordinator</option>
-                                    <option value="marketing">Marketing Specialist</option>
-                                    <option value="other">Other (Please specify)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6" id="customPositionDiv" style="display: none;">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-pen" style="color: var(--secondary-color);"></i> Custom Position Title
-                                </label>
-                                <input type="text" name="custom_position" class="form-control" 
-                                       placeholder="Enter custom position title">
-                            </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Phone Number</label>
+                            <input type="text" name="phone" class="form-control" placeholder="Phone number">
                         </div>
-                    </div>
-                    
-                    <!-- Step 3: Profile Image, Bio, Expertise, Achievements -->
-                    <div id="step3Content" class="step-content" style="display: none;">
-                        <div class="row g-3">
-                            <!-- Profile Image -->
-                            <div class="col-md-4 text-center">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-camera" style="color: var(--secondary-color);"></i> Profile Image
-                                </label>
-                                <div id="imagePreviewContainer">
-                                    <div class="image-preview-placeholder mx-auto">
-                                        <i class="fas fa-user-circle"></i>
-                                    </div>
-                                </div>
-                                <input type="file" name="profile_image" id="profileImage" class="form-control mt-2" accept="image/*">
-                                <small class="text-muted">Upload profile picture (Optional)</small>
-                            </div>
-                            
-                            <div class="col-md-8">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-align-left" style="color: var(--secondary-color);"></i> Bio
-                                </label>
-                                <textarea name="bio" class="form-control" rows="3" 
-                                          placeholder="Short biography for the team page..."></textarea>
-                                <small class="text-muted">This will appear on the About page</small>
-                            </div>
-                            
-                            <div class="col-12">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-tags" style="color: var(--secondary-color);"></i> Expertise
-                                </label>
-                                <input type="text" id="expertiseInput" class="form-control" 
-                                       placeholder="e.g., Customer Service, Technical Support, Logistics (comma separated)">
-                                <small class="text-muted">Enter areas of expertise separated by commas</small>
-                                <div id="expertiseTags" class="expertise-tags"></div>
-                                <input type="hidden" name="expertise" id="expertiseHidden">
-                            </div>
-                            
-                            <div class="col-12">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-trophy" style="color: var(--secondary-color);"></i> Achievements
-                                </label>
-                                <textarea name="achievements" class="form-control" rows="2" 
-                                          placeholder="Key achievements, certifications, awards..."></textarea>
-                            </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Position</label>
+                            <select name="position" class="form-select">
+                                <option value="">Select Position</option>
+                                <option value="operations">Operations Manager</option>
+                                <option value="sales">Sales Manager</option>
+                                <option value="support">Customer Support</option>
+                                <option value="procurement">Procurement Specialist</option>
+                                <option value="logistics">Logistics Coordinator</option>
+                                <option value="marketing">Marketing Specialist</option>
+                                <option value="other">Other</option>
+                            </select>
                         </div>
-                    </div>
-                    
-                    <!-- Step 4: Permissions & Social Media -->
-                    <div id="step4Content" class="step-content" style="display: none;">
-                        <div class="row g-3">
-                            <!-- Social Media Section -->
-                            <div class="col-12">
-                                <h6 class="mb-3"><i class="fas fa-share-alt" style="color: var(--secondary-color);"></i> Social Media Links</h6>
-                                <div class="row g-2">
+                        <div class="col-12" id="customPositionDiv" style="display: none;">
+                            <label class="form-label fw-bold">Custom Position Title</label>
+                            <input type="text" name="custom_position" class="form-control" placeholder="Enter custom position">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Permissions</label>
+                            <div class="border rounded p-3">
+                                <div class="row">
                                     <div class="col-md-6">
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fab fa-linkedin" style="color: #0077b5;"></i></span>
-                                            <input type="url" name="linkedin" class="form-control" placeholder="LinkedIn Profile URL">
+                                        <div class="form-check">
+                                            <input type="checkbox" name="can_view_orders" class="form-check-input" id="perm_orders" checked>
+                                            <label class="form-check-label" for="perm_orders">View Orders</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input type="checkbox" name="can_view_products" class="form-check-input" id="perm_products" checked>
+                                            <label class="form-check-label" for="perm_products">View Products</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input type="checkbox" name="can_edit_products" class="form-check-input" id="perm_edit">
+                                            <label class="form-check-label" for="perm_edit">Edit Products</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fab fa-twitter" style="color: #1DA1F2;"></i></span>
-                                            <input type="url" name="twitter" class="form-control" placeholder="Twitter Profile URL">
+                                        <div class="form-check">
+                                            <input type="checkbox" name="can_manage_suppliers" class="form-check-input" id="perm_suppliers">
+                                            <label class="form-check-label" for="perm_suppliers">Manage Suppliers</label>
                                         </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fab fa-facebook" style="color: #1877F2;"></i></span>
-                                            <input type="url" name="facebook" class="form-control" placeholder="Facebook Profile URL">
+                                        <div class="form-check">
+                                            <input type="checkbox" name="can_view_financial" class="form-check-input" id="perm_financial">
+                                            <label class="form-check-label" for="perm_financial">View Financial Data</label>
                                         </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fab fa-instagram" style="color: #E4405F;"></i></span>
-                                            <input type="url" name="instagram" class="form-control" placeholder="Instagram Profile URL">
+                                        <div class="form-check">
+                                            <input type="checkbox" name="can_view_logs" class="form-check-input" id="perm_logs">
+                                            <label class="form-check-label" for="perm_logs">View Activity Logs</label>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Permissions Section -->
-                            <div class="col-12 mt-3">
-                                <h6 class="mb-3"><i class="fas fa-key" style="color: var(--secondary-color);"></i> System Permissions</h6>
-                                <div class="permission-card">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="permission-group">
-                                                <h6><i class="fas fa-shopping-cart"></i> Order Management</h6>
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="can_view_orders" class="form-check-input" id="perm_orders" checked>
-                                                    <label class="form-check-label" for="perm_orders">
-                                                        View Orders
-                                                        <small>- View all customer orders</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="permission-group">
-                                                <h6><i class="fas fa-box"></i> Product Management</h6>
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="can_view_products" class="form-check-input" id="perm_view_products" checked>
-                                                    <label class="form-check-label" for="perm_view_products">
-                                                        View Products
-                                                        <small>- Browse product catalog</small>
-                                                    </label>
-                                                </div>
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="can_edit_products" class="form-check-input" id="perm_edit_products">
-                                                    <label class="form-check-label" for="perm_edit_products">
-                                                        Edit Products
-                                                        <small>- Modify product details</small>
-                                                    </label>
-                                                </div>
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="can_approve_products" class="form-check-input" id="perm_approve_products">
-                                                    <label class="form-check-label" for="perm_approve_products">
-                                                        Approve Products
-                                                        <small>- Approve supplier products</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-md-6">
-                                            <div class="permission-group">
-                                                <h6><i class="fas fa-store"></i> Supplier Management</h6>
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="can_manage_suppliers" class="form-check-input" id="perm_suppliers">
-                                                    <label class="form-check-label" for="perm_suppliers">
-                                                        Manage Suppliers
-                                                        <small>- Approve/reject supplier applications</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="permission-group">
-                                                <h6><i class="fas fa-chart-line"></i> Financial & Logs</h6>
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="can_view_financial" class="form-check-input" id="perm_financial">
-                                                    <label class="form-check-label" for="perm_financial">
-                                                        View Financial Data
-                                                        <small>- Revenue, commissions, payouts</small>
-                                                    </label>
-                                                </div>
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="can_view_logs" class="form-check-input" id="perm_logs">
-                                                    <label class="form-check-label" for="perm_logs">
-                                                        View Activity Logs
-                                                        <small>- User login history and actions</small>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="alert alert-warning small mt-3">
-                                    <i class="fas fa-shield-alt me-2"></i>
-                                    <strong>Security Note:</strong> Only grant necessary permissions. Team members cannot access financial data unless explicitly granted.
-                                </div>
-                            </div>
+                            <small class="text-muted">Select the permissions this team member should have</small>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" id="prevBtn" class="btn btn-outline-secondary" style="display: none;">Previous</button>
-                    <button type="button" id="nextBtn" class="btn btn-primary-custom btn-primary">Next</button>
-                    <button type="submit" id="submitBtn" class="btn btn-primary-custom btn-primary" style="display: none;">Add Team Member</button>
+                    <button type="submit" class="btn btn-primary">Add Team Member</button>
                 </div>
             </form>
         </div>
@@ -801,227 +355,37 @@
 </div>
 
 <script>
-    // Multi-step form functionality
-    let currentStep = 1;
-    const totalSteps = 4;
-    
-    const step1Content = document.getElementById('step1Content');
-    const step2Content = document.getElementById('step2Content');
-    const step3Content = document.getElementById('step3Content');
-    const step4Content = document.getElementById('step4Content');
-    const step1Indicator = document.getElementById('step1');
-    const step2Indicator = document.getElementById('step2');
-    const step3Indicator = document.getElementById('step3');
-    const step4Indicator = document.getElementById('step4');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    const userEmail = document.getElementById('userEmail');
-    const emailValidationResult = document.getElementById('emailValidationResult');
-    
-    function showStep(step) {
-        // Hide all steps
-        step1Content.style.display = 'none';
-        step2Content.style.display = 'none';
-        step3Content.style.display = 'none';
-        step4Content.style.display = 'none';
-        
-        // Show current step
-        if (step === 1) step1Content.style.display = 'block';
-        if (step === 2) step2Content.style.display = 'block';
-        if (step === 3) step3Content.style.display = 'block';
-        if (step === 4) step4Content.style.display = 'block';
-        
-        // Update indicators
-        [step1Indicator, step2Indicator, step3Indicator, step4Indicator].forEach((ind, idx) => {
-            ind.classList.remove('active', 'completed');
-            if (idx + 1 === step) {
-                ind.classList.add('active');
-            } else if (idx + 1 < step) {
-                ind.classList.add('completed');
-            }
-        });
-        
-        // Show/hide buttons
-        prevBtn.style.display = step === 1 ? 'none' : 'inline-block';
-        if (step === totalSteps) {
-            nextBtn.style.display = 'none';
-            submitBtn.style.display = 'inline-block';
-        } else {
-            nextBtn.style.display = 'inline-block';
-            submitBtn.style.display = 'none';
-        }
-    }
-    
-    // Email validation on blur
-    userEmail?.addEventListener('blur', function() {
-        const email = this.value;
-        if (email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                emailValidationResult.innerHTML = '<div class="alert alert-danger small mb-0"><i class="fas fa-exclamation-triangle"></i> Please enter a valid email address.</div>';
-            } else {
-                emailValidationResult.innerHTML = '<div class="alert alert-success small mb-0"><i class="fas fa-check-circle"></i> Email format looks good.</div>';
-            }
-        } else {
-            emailValidationResult.innerHTML = '';
-        }
-    });
-    
-    // Image preview
-    const profileImageInput = document.getElementById('profileImage');
-    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-    
-    profileImageInput?.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                imagePreviewContainer.innerHTML = `<img src="${event.target.result}" class="image-preview mx-auto" style="display: block;">`;
-            };
-            reader.readAsDataURL(file);
-        } else {
-            imagePreviewContainer.innerHTML = `<div class="image-preview-placeholder mx-auto"><i class="fas fa-user-circle"></i></div>`;
-        }
-    });
-    
-    // Expertise tags functionality
-    const expertiseInput = document.getElementById('expertiseInput');
-    const expertiseTags = document.getElementById('expertiseTags');
-    const expertiseHidden = document.getElementById('expertiseHidden');
-    let expertiseList = [];
-    
-    function updateExpertiseTags() {
-        expertiseTags.innerHTML = '';
-        expertiseList.forEach(tag => {
-            const tagElement = document.createElement('span');
-            tagElement.className = 'expertise-tag';
-            tagElement.innerHTML = `${tag} <i class="fas fa-times-circle" onclick="removeExpertise('${tag}')"></i>`;
-            expertiseTags.appendChild(tagElement);
-        });
-        expertiseHidden.value = expertiseList.join(',');
-    }
-    
-    window.removeExpertise = function(tag) {
-        expertiseList = expertiseList.filter(t => t !== tag);
-        updateExpertiseTags();
-    };
-    
-    expertiseInput?.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const value = this.value.trim();
-            if (value && !expertiseList.includes(value)) {
-                expertiseList.push(value);
-                updateExpertiseTags();
-                this.value = '';
-            }
-        }
-    });
-    
-    expertiseInput?.addEventListener('blur', function() {
-        const value = this.value.trim();
-        if (value && !expertiseList.includes(value)) {
-            expertiseList.push(value);
-            updateExpertiseTags();
-            this.value = '';
-        }
-    });
-    
     // Show/hide custom position field
-    const positionSelect = document.getElementById('position');
-    const customPositionDiv = document.getElementById('customPositionDiv');
-    
-    function toggleCustomPosition() {
-        if (positionSelect?.value === 'other') {
-            customPositionDiv.style.display = 'block';
+    document.getElementById('position')?.addEventListener('change', function() {
+        const customDiv = document.getElementById('customPositionDiv');
+        if (this.value === 'other') {
+            customDiv.style.display = 'block';
         } else {
-            customPositionDiv.style.display = 'none';
+            customDiv.style.display = 'none';
         }
-    }
-    
-    positionSelect?.addEventListener('change', toggleCustomPosition);
-    
-    // Next button click
-    nextBtn?.addEventListener('click', function() {
-        if (currentStep === 1) {
-            const email = userEmail?.value;
-            if (!email) {
-                emailValidationResult.innerHTML = '<div class="alert alert-danger small mb-0"><i class="fas fa-exclamation-triangle"></i> Please enter an email address.</div>';
-                userEmail?.focus();
-                return;
-            }
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                emailValidationResult.innerHTML = '<div class="alert alert-danger small mb-0"><i class="fas fa-exclamation-triangle"></i> Please enter a valid email address.</div>';
-                userEmail?.focus();
-                return;
-            }
-        }
-        
-        if (currentStep < totalSteps) {
-            currentStep++;
-            showStep(currentStep);
-        }
-    });
-    
-    // Previous button click
-    prevBtn?.addEventListener('click', function() {
-        if (currentStep > 1) {
-            currentStep--;
-            showStep(currentStep);
-        }
-    });
-    
-    // Modal reset when opened
-    const addModal = document.getElementById('addTeamMemberModal');
-    addModal?.addEventListener('show.bs.modal', function() {
-        currentStep = 1;
-        showStep(currentStep);
-        document.getElementById('addTeamMemberForm')?.reset();
-        emailValidationResult.innerHTML = '';
-        toggleCustomPosition();
-        expertiseList = [];
-        updateExpertiseTags();
-        imagePreviewContainer.innerHTML = `<div class="image-preview-placeholder mx-auto"><i class="fas fa-user-circle"></i></div>`;
     });
     
     // Search functionality
     document.getElementById('searchTeam')?.addEventListener('keyup', function() {
-        let searchTerm = this.value.toLowerCase();
-        let table = document.getElementById('teamTable');
-        let rows = table?.getElementsByTagName('tbody')[0]?.getElementsByTagName('tr');
+        const searchTerm = this.value.toLowerCase();
+        const roleFilter = document.getElementById('roleFilter')?.value.toLowerCase();
+        const rows = document.querySelectorAll('#teamTable tbody tr');
         
-        if (rows) {
-            for (let row of rows) {
-                let text = row.innerText.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
-            }
-        }
-    });
-    
-    // Modal cleanup
-    document.addEventListener('DOMContentLoaded', function() {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(modal => {
-            modal.addEventListener('hidden.bs.modal', function() {
-                const backdrops = document.querySelectorAll('.modal-backdrop');
-                backdrops.forEach(backdrop => backdrop.remove());
-                document.body.classList.remove('modal-open');
-                document.body.style.overflow = '';
-                document.body.style.paddingRight = '';
-            });
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            const role = row.querySelector('td:nth-child(6)')?.innerText.toLowerCase() || '';
+            
+            const matchesSearch = text.includes(searchTerm);
+            const matchesRole = !roleFilter || role.includes(roleFilter);
+            
+            row.style.display = (matchesSearch && matchesRole) ? '' : 'none';
         });
     });
     
-    // Auto-dismiss alerts after 5 seconds
-    setTimeout(function() {
-        let alerts = document.querySelectorAll('.alert:not(.alert-info):not(.alert-warning)');
-        alerts.forEach(alert => {
-            alert.style.transition = 'opacity 0.5s';
-            alert.style.opacity = '0';
-            setTimeout(() => alert.remove(), 500);
-        });
-    }, 5000);
+    // Role filter
+    document.getElementById('roleFilter')?.addEventListener('change', function() {
+        const searchEvent = new Event('keyup');
+        document.getElementById('searchTeam')?.dispatchEvent(searchEvent);
+    });
 </script>
 {% endblock %}
